@@ -1,95 +1,176 @@
-- bug: type `$platform-web` not working inside media query?
+site:
 
-/theme
+- clicking links fast will crash
 
-- "Share" button generates a short link tamagui.dev/theme/abcdefg
-- Randomize button for palettes
-- OG image of theme card (use the tree one we used for the list of themes in studio)
+uniswap:
 
----
+- AnimatePresence leaving things in DOM
+  - https://uniswapteam.slack.com/archives/C07AHFK2QRK/p1723148309745679
+- enter/exit in media not overriding
+- not accepting number type in media query: "$platform-web" :{ gridColumnGap: 12 }
+- for some reason "$platform-web" :{ gridTemplateRows } not accepted in media uery only
 
-v2:
+postable:
 
-  - @tamagui/cli => tamagui
-    - `tamagui build` document/announce
-    - `tamagui lint` fix check and document/announce
-  - tamagui => @tamagui/ui
-    - new Button, Input, Image, ScrollView
-    - note many are headless
-    - fullscreen => inset={0}
-  - @tamagui/core => @tamagui/style
-  - remove spacer / space
-  - group => container
-  - any tamagui component accepts a function callback to handle passing down styles:
-    - <View>{(props, style, state) => {}}</View>
-    - makes for easy interop, where asChild is more opaque
-    - sets disableClassName true
-  - remove the accumulation of styleProps in propMapper
-  - remove disableRootThemeClass from settings, change to disableRootThemeClassName
-  - defaults onlyAllowShorthands to true, themeClassNameOnRoot to true
-  - document input, image
-  - fix Select hover/type/performance
-  - remove deprecated
-  - document react 19 mode
-  - accessibility props, "focusable" => tabIndex
-  - make sure we make any changes for RSD / web alignment
-  - move to react native flex compat
-  - move to web compat apis
-  - no more `as const` needed (ts5)
-  - move settings into settings
-  - redo/remove ThemeableStack
-  - rename SizableStack to Surface and simplify a bit
-  - v2-3 ListItem simplification esp for performance of Select
-  - Button simplification
-  - remove suppressHighlighting / margin 0 default from Text
-  - AnimatePresence remove the old style variants in favor of custom
-  - disableInjectCSS should maybe just be automated better or defaulted on
-  - run over components and review for removing some assumptions about `size`
+- bring back copy paste on theme tab
+- simplification spree
 
----
 
-v3
 
-- html.div, styled('div')
-- plugins
-- zero runtime mode
-  - all functional styles pre-generate the styles across the possible tokens (if :number it uses SizeTokens, probably have to disallow string and '...' types but could have a way to define the values at build-time)
-
-  - createStyledContext upgrade
+apply helps us create much simpler component APIs for v2
+likely last feature needed for it:
 
 ```tsx
-import { apply } from '@tamagui/core'
+import { Apply } from '@tamagui/core'
 
 const Text = styled(Text, {
-  className: 'button',
 })
 
 const Icon = styled(Text, {
-  className: 'button',
 })
 
-const Apply = apply(Text, Icon)
+const Button = withStaticProperties(ButtonFrame, {
+  Children: (props) => <Apply to={[Text, Icon]} {...props} />,
+  Icon,
+  Text
+})
+
+/**
+ * one consideration is that if children are animated and with a js-based
+ * animation driver, then we can't flatten/optimize them + Apply. not a huge
+ * issue because we can figure out ways to re-optimize. i think probably we
+ * add a zero-runtime mode that if enabled, you'd have to do like
+ * <Apply static /> so the compiler knows it can optimize Apple into CSS.
+ **/
+
+const example = (
+  <Button>
+    <Apply to={[Text, Icon]} color="$color10">
+      {/* all of these 👇 get the styles from ^ */}
+      <Button.Text /> 
+      <Button.Text />
+      <Button.Text />
+      <Button.Icon $button-hover={{}} />
+    </Apply>
+  </Button>
+)
+
+
+// we could just use classnames?
+
+import { Style } from '@tamagui/core'
+
+const Text = styled(Text, {
+  className: 'button-item',
+})
+
+const Icon = styled(Text, {
+  className: 'button-item',
+})
 
 const Button = withStaticProperties(ButtonFrame, {
-  Apply,
+  StyleChildren: (props) => <Style selector=".button-item" {...props} />,
   Icon,
   Text
 })
 
 const example = (
   <Button>
-    <Button.Apply color="$color10">
+    <Button.StyleChildren color="$color10">
       {/* all of these 👇 get the styles from ^ */}
       <Button.Text /> 
       <Button.Text />
       <Button.Text />
       <Button.Icon $button-hover={{}} />
-    </Button.Apply>
+    </Button.StyleChildren>
   </Button>
 )
+
+
+
 ```
 
+---
 
+v2:
+
+  - Text weirdness fixes (explore)
+    - remove suppressHighlighting / margin 0 default from Text
+    - fix display: inline issue
+    - see what react-strict-dom is doing
+    - move it to <div><span> where div is flex, span is text only props
+        <div {...nonTextStyleProps}>
+          <span {...textStylePropsOnly} style={{ display: 'contents' }}>
+
+          </span>
+        </div>
+  - implement web-only props from flat types or else remove them and leave only in $platform-web
+  - textAlignVertical is deprecated but make sure we map back from textAlign to textAlignVertical on v2 and then remove it
+  - remove Provider need just global config once
+  - @tamagui/cli => tamagui
+    - `tamagui build` document/announce
+    - `tamagui lint` fix check and document/announce
+  - remove deprecated second argument styled acceptsClassName
+    - styled(View, { acceptsClassName }, { acceptsClassName })
+  - deprecrate and remove mediaPropOrder
+  - tamagui => @tamagui/ui
+    - new Button, Input (nice, can be v3), Image (image-next), ScrollView
+    - note many are headless
+    - fullscreen => inset={0}
+      - deprecate fullscreen, make sure inset works
+  - remove spacer / space / separator
+  - remove the accumulation of styleProps in propMapper
+  - remove disableRootThemeClass from settings, change to disableRootThemeClassName
+  - defaults onlyAllowShorthands to true, themeClassNameOnRoot to true
+  - Cleanup Select/ListItem
+    - remove SizableStack (maybe rename to Surface), redo/remove ThemeableStack
+    - v2-3 ListItem simplification esp for performance of Select
+    - fix Select hover/type/performance
+  - remove deprecated
+  - document react 19 mode - process.env.TAMAGUI_REACT_19
+  - react 0.74 alignment:
+    - https://reactnative.dev/blog/2024/04/22/release-0.74
+    - position: 'static'
+  - web alignment, accessibility props, "focusable" => tabIndex
+  - move to react native flex compat, `styleCompat` default to react-native
+    - web alignment?
+  - move to web compat style apis
+  - no more `as const` needed (ts5) typescript const generic
+  - remove deprecated flat settings, prefer createTamagui({ settings: {} })
+  - AnimatePresence: remove deprecated props in favor of `custom`
+  - remove nativeID, maybe testID
+  - remove `dataSet` in favor of `data-` attributes
+  - remove as much of `// TODO: remove this in the future when react native a11y API is removed` as possible
+    - "Enhance with native semantics" can probably go away right
+
+potential
+
+  - sync AnimatePresence with latest changes from framer-motion
+  - group => container
+
+stretch
+
+  - @tamagui/core => @tamagui/style
+    - styled()
+    - @tamagui/style just style({}) export, takes TextProps
+
+---
+
+v3
+
+  - run over components and review for removing some assumptions about `size`
+  - disableInjectCSS should maybe just be automated better or defaulted on
+  - flat vs style mode, style moves all tamagui styles into `style` besides the other psuedos like hover, enter, etc
+  - no react-native deps across the ui kit on web
+  - html.div, styled('div'), styled(html.div)
+  - zero runtime mode
+    - all functional styles pre-generate the styles across the possible tokens (if :number it uses SizeTokens, probably have to disallow string and '...' types but could have a way to define the values at build-time)
+
+---
+
+v4 and beyond
+
+- plugins
 
 ---
 
@@ -102,6 +183,29 @@ const example = (
   - automatically handles tree shaking process.env for themes
 
 ---
+
+- any tamagui component accepts a function callback to handle passing down styles:
+    - <View>{(props, style, state) => {}}</View>
+    - makes for easy interop, where asChild is more opaque
+    - sets disableClassName true
+
+- we need to beef up tests:
+  - native in general
+  - native/web performance
+  - nextjs (can add to code/next-site), esp light/dark/animations
+  - $group $platform $theme styling
+
+- uniswap //@ts-expect-error TODO in homepage
+- bug in useMedia + compiler
+  - https://app.graphite.dev/github/pr/Uniswap/universe/10626/fix-web-toast-alignment
+
+/theme
+
+- generate short url on load
+- randomize button for palettes
+- OG image of theme card (use the tree one we used for the list of themes in studio)
+- save
+- use on bento
 
 - can we remove the need for separate Text/View?
     - seems like we could scan just the direct descendents?

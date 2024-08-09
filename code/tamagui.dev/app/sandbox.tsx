@@ -1,13 +1,17 @@
-import { Circle } from 'tamagui'
+import { styled, View } from '@tamagui/web'
 
 export default function Sandbox() {
-  return (
-    <Circle
-      size={100}
-      bg="red"
-      y={0}
-      transform="scale(2)"
-      // enterStyle={{ o: 0, y: -50 }}
-    />
-  )
+  return <Test />
 }
+
+const Test = styled(View, {
+  width: 100,
+  height: 100,
+  backgroundColor: 'red',
+
+  $md: {
+    '$platform-web': {
+      backgroundColor: 'green',
+    },
+  },
+})

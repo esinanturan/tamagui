@@ -1,3 +1,4 @@
+import React from 'react'
 import { composeRefs } from '@tamagui/compose-refs'
 import { isClient, isServer, isWeb, useIsomorphicLayoutEffect } from '@tamagui/constants'
 import {
@@ -6,19 +7,6 @@ import {
   composeEventHandlers,
   validStyles,
 } from '@tamagui/helpers'
-import React, {
-  Children,
-  Fragment,
-  createElement,
-  forwardRef,
-  memo,
-  useContext,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
 
 import { devConfig, getConfig, onConfiguredOnce } from './config'
 import { stackDefaultStyles } from './constants/constants'
@@ -41,12 +29,7 @@ import { mergeProps } from './helpers/mergeProps'
 import { setElementProps } from './helpers/setElementProps'
 import { themeable } from './helpers/themeable'
 import { useDidHydrateOnce } from './hooks/useDidHydrateOnce'
-import {
-  getMediaState,
-  mediaKeyMatch,
-  setMediaShouldUpdate,
-  useMedia,
-} from './hooks/useMedia'
+import { getMediaState, setMediaShouldUpdate, useMedia } from './hooks/useMedia'
 import { useThemeWithState } from './hooks/useTheme'
 import type { TamaguiComponentEvents } from './interfaces/TamaguiComponentEvents'
 import type { TamaguiComponentState } from './interfaces/TamaguiComponentState'
@@ -165,7 +148,7 @@ export const useComponentState = (
 ) => {
   const useAnimations = animationDriver?.useAnimations as UseAnimationHook | undefined
 
-  const stateRef = useRef<TamaguiComponentStateRef>(
+  const stateRef = React.useRef<TamaguiComponentStateRef>(
     undefined as any as TamaguiComponentStateRef
   )
   if (!stateRef.current) {
@@ -235,7 +218,7 @@ export const useComponentState = (
   }
 
   // HOOK
-  const states = useState<TamaguiComponentState>(initialState)
+  const states = React.useState<TamaguiComponentState>(initialState)
 
   const state = props.forceStyle ? { ...states[0], [props.forceStyle]: true } : states[0]
   const setState = states[1]
@@ -309,6 +292,14 @@ export const useComponentState = (
 
     if (isAnimatedAndHydrated || isDisabledManually || isClassNameDisabled) {
       shouldAvoidClasses = true
+
+      if (process.env.NODE_ENV === 'development' && props.debug) {
+        log(`avoiding className`, {
+          isAnimatedAndHydrated,
+          isDisabledManually,
+          isClassNameDisabled,
+        })
+      }
     }
   }
 
@@ -434,9 +425,9 @@ export function createComponent<
     }
   }
 
-  const component = forwardRef<Ref, ComponentPropTypes>((propsIn, forwardedRef) => {
+  const component = React.forwardRef<Ref, ComponentPropTypes>((propsIn, forwardedRef) => {
     // HOOK
-    const internalID = process.env.NODE_ENV === 'development' ? useId() : ''
+    const internalID = process.env.NODE_ENV === 'development' ? React.useId() : ''
 
     if (process.env.NODE_ENV === 'development') {
       if (startVisualizer) {
@@ -466,7 +457,7 @@ export function createComponent<
     }
 
     // HOOK
-    const componentContext = useContext(ComponentContext)
+    const componentContext = React.useContext(ComponentContext)
 
     // set variants through context
     // order is after default props but before props
@@ -477,7 +468,7 @@ export function createComponent<
 
     if (context) {
       // HOOK 3 (-1 if production)
-      contextValue = useContext(context)
+      contextValue = React.useContext(context)
       const { inverseShorthands } = getConfig()
       for (const key in context.props) {
         const propVal =
@@ -521,7 +512,7 @@ export function createComponent<
 
     if (process.env.NODE_ENV === 'development' && isClient) {
       // HOOK
-      useEffect(() => {
+      React.useEffect(() => {
         let overlay: HTMLSpanElement | null = null
 
         const debugVisualizerHandler = (show = false) => {
@@ -683,6 +674,7 @@ export function createComponent<
           Component?.name ||
           '[Unnamed Component]'
         }`
+
         const type =
           (hasEnterStyle ? '(hasEnter)' : ' ') +
           (isAnimated ? '(animated)' : ' ') +
@@ -933,7 +925,7 @@ export function createComponent<
 
     if (process.env.NODE_ENV === 'development') {
       if (!isReactNative && !isText && isWeb && !isHOC) {
-        Children.toArray(props.children).forEach((item) => {
+        React.Children.toArray(props.children).forEach((item) => {
           // allow newlines because why not its annoying with mdx
           if (typeof item === 'string' && item !== '\n') {
             console.error(
@@ -964,7 +956,7 @@ export function createComponent<
       })
     }
 
-    useEffect(() => {
+    React.useEffect(() => {
       if (disabled) {
         return
       }
@@ -1248,7 +1240,7 @@ export function createComponent<
     if (useChildrenResult) {
       content = useChildrenResult
     } else {
-      content = createElement(elementType, viewProps, content)
+      content = React.createElement(elementType, viewProps, content)
     }
 
     // needs to reset the presence state for nested children
@@ -1267,7 +1259,7 @@ export function createComponent<
 
     // must override context so siblings don't clobber initial state
     const groupState = curStateRef.group
-    const subGroupContext = useMemo(() => {
+    const subGroupContext = React.useMemo(() => {
       if (!groupState || !groupName) return
       groupState.listeners.clear()
       // change reference so context value updates
@@ -1472,7 +1464,7 @@ export function createComponent<
   let res: ComponentType = component as any
 
   if (process.env.TAMAGUI_FORCE_MEMO || staticConfig.memo) {
-    res = memo(res) as any
+    res = React.memo(res) as any
   }
 
   res.staticConfig = staticConfig
@@ -1496,14 +1488,16 @@ export function createComponent<
   function styleable(Component: any, options?: StyleableOptions) {
     const isForwardedRefAlready = Component.render?.length === 2
 
-    let out = isForwardedRefAlready ? (Component as any) : forwardRef(Component as any)
+    let out = isForwardedRefAlready
+      ? (Component as any)
+      : React.forwardRef(Component as any)
 
     const extendedConfig = extendStyledConfig(options?.staticConfig)
 
     out = options?.disableTheme ? out : (themeable(out, extendedConfig) as any)
 
     if (process.env.TAMAGUI_MEMOIZE_STYLEABLE) {
-      out = memo(out)
+      out = React.memo(out)
     }
 
     out.staticConfig = extendedConfig
@@ -1518,9 +1512,7 @@ export function createComponent<
 }
 
 type EventKeys = keyof (TamaguiComponentEvents & WebOnlyPressEvents)
-type EventLikeObject = {
-  [key in EventKeys]?: any
-}
+type EventLikeObject = { [key in EventKeys]?: any }
 
 function getWebEvents<E extends EventLikeObject>(events: E, webStyle = true) {
   return {
@@ -1620,7 +1612,9 @@ export function spacedChildren(props: SpacedChildrenProps) {
     return children
   }
 
-  const childrenList = areChildrenArray ? (children as any[]) : Children.toArray(children)
+  const childrenList = areChildrenArray
+    ? (children as any[])
+    : React.Children.toArray(children)
 
   const len = childrenList.length
   if (len <= 1 && !isZStack && !childrenList[0]?.['type']?.['shouldForwardSpace']) {
@@ -1649,9 +1643,9 @@ export function spacedChildren(props: SpacedChildrenProps) {
       final.push(child)
     } else {
       final.push(
-        <Fragment key={`${index}0t`}>
+        <React.Fragment key={`${index}0t`}>
           {isZStack ? <AbsoluteFill>{child}</AbsoluteFill> : child}
-        </Fragment>
+        </React.Fragment>
       )
     }
 
@@ -1674,7 +1668,7 @@ export function spacedChildren(props: SpacedChildrenProps) {
             })
           )
         }
-        final.push(<Fragment key={`${index}03t`}>{separator}</Fragment>)
+        final.push(<React.Fragment key={`${index}03t`}>{separator}</React.Fragment>)
         if (hasSpace) {
           final.push(
             createSpacer({
@@ -1786,7 +1780,7 @@ export const subscribeToContextGroup = ({
       console.debug(`No context group found`)
     }
 
-    return componentContext.groups?.subscribe((name, { layout, pseudo }) => {
+    return componentContext.groups?.subscribe?.((name, { layout, pseudo }) => {
       if (pseudo && pseudoGroups?.has(String(name))) {
         // we emit a partial so merge it + change reference so mergeIfNotShallowEqual runs
         Object.assign(current.pseudo, pseudo)
