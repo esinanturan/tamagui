@@ -1,17 +1,15 @@
 import { register } from 'esbuild-register/dist/node'
 
+import { esbuildIgnoreFilesRegex } from './extractor/bundle'
 import { requireTamaguiCore } from './helpers/requireTamaguiCore'
 import type { TamaguiPlatform } from './types'
-import { esbuildIgnoreFilesRegex } from './extractor/bundle'
 
 const nameToPaths = {}
 
 export const getNameToPaths = () => nameToPaths
 
 const Module = require('node:module')
-const packageJson = require('react-native-web/package.json')
 const proxyWorm = require('@tamagui/proxy-worm')
-const rnw = require('react-native-web')
 
 let isRegistered = false
 let og: any
@@ -62,34 +60,36 @@ export function registerRequire(
       })
     }
 
+    if (
+      path in knownIgnorableModules ||
+      path.startsWith('react-native-reanimated') ||
+      esbuildIgnoreFilesRegex.test(path)
+    ) {
+      return proxyWorm
+    }
+
     if (path in compiled) {
       return compiled[path]
     }
 
-    if (esbuildIgnoreFilesRegex.test(path)) {
-      return {}
+    if (path === 'react-native-svg') {
+      return og.apply(this, ['@tamagui/react-native-svg'])
+    }
+
+    if (path === 'react-native/package.json') {
+      return og.apply(this, ['react-native-web/package.json'])
     }
 
     if (
-      path === '@gorhom/bottom-sheet' ||
-      path.startsWith('react-native-reanimated') ||
-      path === 'expo-linear-gradient' ||
-      path === '@expo/vector-icons' ||
-      path === 'tamagui/linear-gradient' ||
-      path === 'react-native-svg'
+      path === '@tamagui/react-native-web-lite' ||
+      path === 'react-native' ||
+      path.startsWith('react-native/')
     ) {
-      return proxyWorm
-    }
-    if (path === 'react-native/package.json') {
-      return packageJson
-    }
-
-    if (path === 'react-native-web-lite' || path.startsWith('react-native')) {
-      return rnw
-    }
-
-    if (path in knownIgnorableModules) {
-      return proxyWorm
+      try {
+        return og.apply('react-native')
+      } catch {
+        return og.apply(this, ['@tamagui/react-native-web-lite'])
+      }
     }
 
     if (!whitelisted[path]) {
@@ -153,7 +153,7 @@ export function registerRequire(
          */
 
         console.error(
-          `Tamagui failed loading "${path}"
+          `Tamagui failed to require() "${path}"
   
   ${err.message}
   ${err.stack}
@@ -179,9 +179,14 @@ export function registerRequire(
 const IGNORES = process.env.TAMAGUI_IGNORE_BUNDLE_ERRORS
 const extraIgnores =
   IGNORES === 'true' ? [] : process.env.TAMAGUI_IGNORE_BUNDLE_ERRORS?.split(',')
+
 const knownIgnorableModules = {
+  '@gorhom/bottom-sheet': true,
   'expo-modules': true,
   solito: true,
+  'expo-linear-gradient': true,
+  '@expo/vector-icons': true,
+  'tamagui/linear-gradient': true,
   ...Object.fromEntries(extraIgnores?.map((k) => [k, true]) || []),
 }
 

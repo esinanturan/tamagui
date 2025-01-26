@@ -1,6 +1,6 @@
 {
   "name": "bento-get",
-  "version": "1.105.5",
+  "version": "1.123.2",
   "license": "MIT",
   "bin": "dist/cli.js",
   "type": "module",
@@ -19,10 +19,10 @@
     "dist"
   ],
   "scripts": {
-    "build": "tamagui-build",
-    "watch": "tamagui-build --watch",
-    "lint": "npx biome check src",
-    "lint:fix": "npx biome check --apply-unsafe src",
+    "build": "tamagui-build --skip-types",
+    "watch": "yarn build --watch",
+    "lint": "biome check src",
+    "lint:fix": "biome check --write src",
     "clean": "tamagui-build clean",
     "clean:build": "tamagui-build clean:build",
     "local-npm-link": "npm link --local --force"
@@ -30,18 +30,22 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "react-native": "./dist/cjs/index.native.js",
+      "react-native": {
+        "import": "./dist/esm/index.native.js",
+        "require": "./dist/cjs/index.native.js"
+      },
       "types": "./types/index.d.ts",
       "import": "./dist/esm/index.mjs",
-      "require": "./dist/cjs/index.js"
+      "require": "./dist/cjs/index.cjs",
+      "default": "./dist/cjs/index.native.js"
     }
   },
   "dependencies": {
     "@inkjs/ui": "^1.0.0",
     "@supabase/supabase-js": "^2.44.4",
-    "@tamagui/use-force-update": "1.105.5",
     "conf": "^12.0.0",
     "copy-paste": "^1.5.3",
+    "file-paths-to-tree": "^4.0.0",
     "fuse.js": "^7.0.0",
     "ink": "^4.1.0",
     "ink-link": "^3.0.0",
@@ -50,13 +54,15 @@
     "octokit": "^4.0.2",
     "open": "^10.1.0",
     "pastel": "^2.0.0",
-    "react": "^18.2.0",
+    "react-router-dom": "6.4",
     "swr": "^2.2.5",
-    "zod": "^3.22.4"
+    "type-fest": "3.13.1",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@tamagui/build": "1.105.5",
+    "@tamagui/build": "1.123.2",
     "@types/copy-paste": "^1.1.33",
-    "@types/react": "^18.2.55"
+    "@types/ink": "^2.0.3",
+    "@types/react": "npm:@types/react@18.2.55"
   }
 }

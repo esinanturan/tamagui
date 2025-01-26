@@ -1,4 +1,4 @@
-import { ThemeTint, ThemeTintAlt, useTint } from '@tamagui/logo'
+import { LogoIcon, ThemeTintAlt, useTint } from '@tamagui/logo'
 import { memo } from 'react'
 import {
   Button,
@@ -43,24 +43,24 @@ const HeroSubTitle = memo(() => {
 
   return (
     <Subtitle>
-      <Link asChild href="/docs/core/configuration">
-        <Tag theme="green" onHoverIn={() => setHovered(0)} active={hovered === 0}>
+      <Link asChild href="/docs/introduction">
+        <Tag theme="red" onHoverIn={() => setHovered(2)} active={hovered === 2}>
           styles
         </Tag>
       </Link>{' '}
       ·{' '}
       <Link asChild href="/docs/intro/why-a-compiler">
-        <Tag theme="blue" onHoverIn={() => setHovered(1)} active={hovered === 1}>
+        <Tag theme="green" onHoverIn={() => setHovered(3)} active={hovered === 3}>
           optimizing compiler
         </Tag>
       </Link>{' '}
       ·{' '}
-      <Link asChild href="/docs/components/stacks">
-        <Tag theme="purple" onHoverIn={() => setHovered(2)} active={hovered === 2}>
+      <Link asChild href="/ui/stacks">
+        <Tag theme="blue" onHoverIn={() => setHovered(4)} active={hovered === 4}>
           UI&nbsp;kit
         </Tag>
       </Link>{' '}
-      for&nbsp;React&nbsp;·&nbsp;every&nbsp;platform
+      for&nbsp;React&nbsp;and&nbsp;React&nbsp;Native
     </Subtitle>
   )
 })
@@ -103,7 +103,7 @@ const HeroContents = memo(function HeroContents() {
         }}
       >
         <>
-          <XGroup pos="absolute" als="center" y={-80} br="$8">
+          <XGroup elevation="$0.5" pos="absolute" als="center" y={-80} br="$8">
             <Link href="/takeout">
               <XGroup.Item>
                 <Button
@@ -111,10 +111,13 @@ const HeroContents = memo(function HeroContents() {
                   bc="$color6"
                   size="$3"
                   br="$10"
-                  elevation="$0.5"
                   fontFamily="$silkscreen"
                   fontSize={12}
                   brw={0.5}
+                  hoverStyle={{
+                    bc: '$color8',
+                    bg: '$color5',
+                  }}
                 >
                   Takeout
                   <YStack y={-1} dsp="inline-flex">
@@ -139,15 +142,14 @@ const HeroContents = memo(function HeroContents() {
                   <Button
                     // animation="bouncy"
                     blw={0.5}
-                    bc="$color3"
+                    bc="$color6"
                     size="$3"
                     br="$10"
-                    elevation="$0.5"
                     fontFamily="$silkscreen"
                     fontSize={12}
                     hoverStyle={{
-                      bc: '$color3',
-                      bg: '$color2',
+                      bc: '$color7',
+                      bg: '$color5',
                     }}
                   >
                     Bento
@@ -176,33 +178,27 @@ const HeroContents = memo(function HeroContents() {
         <YStack ai="flex-start" $gtSm={{ ai: 'center' }} gap="$4">
           <H1
             ta="left"
-            size="$10"
             // animation="lazy"
             // enterStyle={{
             //   y: -10,
             //   o: 0,
             // }}
+            size="$11"
+            lh={61}
             maw={500}
+            mah={400}
             pos="relative"
-            // FOR CLS IMPORTANT TO SET EXACT HEIGHT IDK WHY LINE HEIGHT SHOULD BE STABLE
             $gtSm={{
-              mx: 0,
-              maxWidth: 800,
-              size: '$14',
-              h: 250,
-              ta: 'center',
-              als: 'center',
+              scale: 1.5,
+              m: '5%',
             }}
             $gtMd={{
-              maxWidth: 900,
-              size: '$15',
-              h: 310,
+              scale: 1.6,
+              m: '7%',
             }}
             $gtLg={{
-              size: '$16',
-              lh: 146,
-              maxWidth: 1200,
-              h: 310,
+              scale: 2,
+              my: '8%',
             }}
           >
             <Text
@@ -221,8 +217,7 @@ const HeroContents = memo(function HeroContents() {
             {/* add gradient to other colors: */}
             <br />
             <span style={{ position: 'relative' }}>
-              <span style={{ opacity: 0 }}>runs&nbsp;faster</span>
-              <RunsFasterTextEffects />
+              <TextWithEffects text="runs&nbsp;faster" />
             </span>
           </H1>
 
@@ -286,24 +281,27 @@ const HeroContents = memo(function HeroContents() {
           gap="$2"
           $xxs={{ ai: 'center', fw: 'wrap', gap: 0 }}
         >
-          <Link target="_blank" href="https://twitter.com/tamagui_js">
-            <TooltipSimple placement="top" delay={0} restMs={25} label="Twitter">
+          <Link target="_blank" href="https://x.com/tamagui_js">
+            <TooltipSimple placement="top" delay={0} restMs={25} label="X">
               <YStack p="$5" $sm={{ p: '$3' }} opacity={0.65} hoverStyle={{ opacity: 1 }}>
                 <VisuallyHidden>
-                  <Text>Twitter</Text>
+                  <Text>X</Text>
                 </VisuallyHidden>
-                <TwitterIcon width={24} />
+                <TwitterIcon />
               </YStack>
             </TooltipSimple>
           </Link>
 
-          <ThemeTint>
+          <Theme name="black">
             <Link asChild href="/docs/intro/introduction">
               <Button
                 aria-label="Get started (docs)"
+                group="item"
+                containerType="normal"
                 fontFamily="$silkscreen"
+                componentName=""
                 size="$5"
-                fontSize="$6"
+                fontSize="$2"
                 borderRadius={1000}
                 bordered
                 bw={2}
@@ -313,19 +311,14 @@ const HeroContents = memo(function HeroContents() {
                 pressStyle={{
                   elevation: '$0',
                 }}
-                // TODO this is applying in dark mode...
-                // $theme-light={{
-                //   bg: '$color1',
-                //   hoverStyle: {
-                //     bg: '$color2',
-                //     color: '$color10',
-                //   },
-                // }}
               >
                 Start
+                <YStack $group-item-press={{ scaleX: -1 }}>
+                  <LogoIcon downscale={3} />
+                </YStack>
               </Button>
             </Link>
-          </ThemeTint>
+          </Theme>
 
           <TooltipSimple placement="top" delay={0} restMs={25} label="Discord">
             <Link asChild target="_blank" href="https://discord.gg/4qh6tdcVDa">
@@ -339,7 +332,7 @@ const HeroContents = memo(function HeroContents() {
                 <VisuallyHidden>
                   <Text>Discord</Text>
                 </VisuallyHidden>
-                <DiscordIcon plain width={24} />
+                <DiscordIcon plain width={30} />
               </YStack>
             </Link>
           </TooltipSimple>
@@ -401,23 +394,23 @@ const Tag = styled(Text, {
   px: '$1',
   mx: '$-1',
   cursor: 'pointer',
-  color: '$color10',
-  bg: '$color3',
+  color: '$color11',
+  bg: '$background02',
 
   hoverStyle: {
     color: '$color',
-    bg: '$color4',
+    bg: '$background04',
   },
 
   variants: {
     active: {
       true: {
-        color: '$color10',
-        bg: '$color5',
+        color: '$color',
+        bg: '$background06',
 
         hoverStyle: {
-          color: '$color12',
-          bg: '$color5',
+          color: '$color',
+          bg: '$background08',
         },
       },
     },
@@ -429,99 +422,91 @@ const HeroText = styled(Text, {
 
   $sm: {
     t: 0,
-    l: -4,
+    l: -2,
   },
 
   $gtSm: {
-    t: 2,
+    t: 1,
   },
 
   $gtMd: {
-    t: 4,
+    t: 3,
   },
 
   $gtLg: {
-    t: 8,
+    t: 7,
   },
 })
 
-const RunsFasterTextEffects = () => {
-  // for a fade in delay effect
-  // const [show, setShow] = useState(false)
-
-  // useEffect(() => {
-  //   const tm = setTimeout(() => {
-  //     setShow(true)
-  //   }, 500)
-  //   return () => {
-  //     clearTimeout(tm)
-  //   }
-  // }, [])
-
+const TextWithEffects = ({ text }: { text: string }) => {
   return (
-    <YStack
-      animation="lazy"
-      fullscreen
-      // {...(!show && {
-      //   y: -10,
-      //   o: 0,
-      // })}
-      // {...(show && {
-      //   y: 0,
-      //   o: 1,
-      // })}
-    >
-      <HeroText className="clip-text rainbow" l={-4} $sm={{ l: 0 }}>
-        runs&nbsp;faster
-      </HeroText>
-      <ThemeTintAlt offset={2}>
+    <>
+      <span style={{ opacity: 0 }}>{text}</span>
+
+      <YStack fullscreen>
         <HeroText
-          className="mask-gradient-down"
-          style={{ mixBlendMode: 'hard-light' }}
-          pe="none"
-          o={0.5}
-          col="$color8"
-          $sm={{ l: 3 }}
-        >
-          runs&nbsp;faster
-        </HeroText>
-      </ThemeTintAlt>
-      <ThemeTintAlt offset={1}>
-        <HeroText
+          className="clip-text rainbow grain"
           l={-3}
-          className="mask-gradient-up"
-          style={{ mixBlendMode: 'hard-light' }}
-          pe="none"
-          col="$color8"
-          $sm={{ l: 1.5 }}
-        >
-          runs&nbsp;faster
-        </HeroText>
-      </ThemeTintAlt>
-      <ThemeTintAlt offset={-2}>
-        <HeroText
-          l={0}
-          className="mask-gradient-right"
-          pe="none"
-          col="$color8"
-          o={0.26}
-          $sm={{ l: 3 }}
-        >
-          runs&nbsp;faster
-        </HeroText>
-      </ThemeTintAlt>
-      <ThemeTintAlt offset={-3}>
-        <HeroText
-          l={0}
-          className="mask-gradient-right"
-          pe="none"
-          col="$color8"
           o={0.5}
-          $sm={{ l: 3 }}
-        >
-          runs&nbsp;faster
-        </HeroText>
-      </ThemeTintAlt>
-    </YStack>
+          dangerouslySetInnerHTML={{
+            __html: text,
+          }}
+        />
+
+        <ThemeTintAlt offset={2}>
+          <HeroText
+            className="mask-gradient-down"
+            pe="none"
+            o={0.5}
+            x={-1}
+            col="$color9"
+            dangerouslySetInnerHTML={{
+              __html: text,
+            }}
+          />
+        </ThemeTintAlt>
+
+        <ThemeTintAlt offset={3}>
+          <HeroText
+            l={-1}
+            className="mask-gradient-up"
+            mixBlendMode="hard-light"
+            pe="none"
+            col="$color9"
+            dangerouslySetInnerHTML={{
+              __html: text,
+            }}
+          />
+        </ThemeTintAlt>
+
+        <ThemeTintAlt offset={0}>
+          <HeroText
+            l={0}
+            className="mask-gradient-right"
+            y={1}
+            pe="none"
+            col="$color9"
+            o={0.26}
+            dangerouslySetInnerHTML={{
+              __html: text,
+            }}
+          />
+        </ThemeTintAlt>
+
+        <ThemeTintAlt offset={-3}>
+          <HeroText
+            l={0}
+            y={-1}
+            // filter="blur(3px)"
+            className="mask-gradient-right"
+            pe="none"
+            col="$color8"
+            dangerouslySetInnerHTML={{
+              __html: text,
+            }}
+          />
+        </ThemeTintAlt>
+      </YStack>
+    </>
   )
 }

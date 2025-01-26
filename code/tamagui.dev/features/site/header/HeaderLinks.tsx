@@ -17,14 +17,15 @@ import {
   debounce,
   styled,
 } from 'tamagui'
+import type { Href } from 'one'
 import { Link } from '~/components/Link'
+import { BentoPageFrame } from '~/features/bento/BentoPageFrame'
 import { BentoIcon } from '~/features/icons/BentoIcon'
 import { GithubIcon } from '~/features/icons/GithubIcon'
 import { TakeoutIcon } from '~/features/icons/TakeoutIcon'
 import { useUser } from '~/features/user/useUser'
 import { UserAvatar } from './UserAvatar'
 import type { HeaderProps } from './types'
-import { BentoPageFrame } from '~/features/bento/BentoPageFrame'
 
 const HeadAnchor = styled(Paragraph, {
   tag: 'a',
@@ -32,9 +33,10 @@ const HeadAnchor = styled(Paragraph, {
   px: '$3',
   py: '$3',
   cursor: 'pointer',
-  size: '$2',
+  size: '$4',
   color: '$color11',
   tabIndex: -1,
+  letterSpacing: -1,
 
   hoverStyle: {
     color: '$color',
@@ -87,11 +89,23 @@ export const HeaderLinks = (props: HeaderProps) => {
             display: forceShowAllLinks ? 'flex' : 'none',
           }}
         >
-          Docs
+          Core
         </HeadAnchor>
       </Link>
 
-      <Link asChild href="/ui/stacks">
+      <Link asChild href="/docs/intro/compiler-install">
+        <HeadAnchor
+          // half={forceShowAllLinks}
+          grid={forceShowAllLinks}
+          $sm={{
+            display: forceShowAllLinks ? 'flex' : 'none',
+          }}
+        >
+          Compile
+        </HeadAnchor>
+      </Link>
+
+      <Link asChild href="/ui/intro">
         <HeadAnchor
           // half={forceShowAllLinks}
           grid={forceShowAllLinks}
@@ -122,7 +136,7 @@ export const HeaderLinks = (props: HeaderProps) => {
       {forceShowAllLinks ? (
         <>
           {primaryLinks}
-          <Separator bc="$color025" o={0.25} my="$2" />
+          <Separator bc="$color02" o={0.25} my="$2" />
         </>
       ) : (
         primaryLinks
@@ -132,7 +146,7 @@ export const HeaderLinks = (props: HeaderProps) => {
           <XStack fw="wrap" f={1} gap="$2" w="100%">
             {primaryLinks}
           </XStack>
-          <Separator bc="$color025" o={0.25} my="$2" />
+          <Separator bc="$color02" o={0.25} my="$2" />
         </>
       ) : (
         primaryLinks
@@ -176,7 +190,7 @@ export const HeaderLinks = (props: HeaderProps) => {
               </HeadAnchor>
             </Link>
           </XStack>
-          <Separator bc="$color025" o={0.25} my="$2" />
+          <Separator bc="$color02" o={0.25} my="$2" />
         </>
       )}
 
@@ -201,7 +215,7 @@ export const HeaderLinks = (props: HeaderProps) => {
               </HeadAnchor>
             </Link> */}
           </XStack>
-          <Separator bc="$color025" o={0.25} my="$2" />
+          <Separator bc="$color02" o={0.25} my="$2" />
         </>
       )}
 
@@ -209,15 +223,14 @@ export const HeaderLinks = (props: HeaderProps) => {
         <SlidingPopover>
           <Popover.Trigger asChild="except-style">
             <XStack
-              gap="$2"
               br="$10"
-              px="$2"
-              height={44}
+              px="$1"
+              height={40}
               ai="center"
               bw={1}
               bc="transparent"
               hoverStyle={{
-                bc: '$color025',
+                bc: '$color02',
               }}
             >
               <SlidingPopoverTrigger id="takeout">
@@ -239,7 +252,7 @@ export const HeaderLinks = (props: HeaderProps) => {
                   name="Bento"
                   description="starter kit"
                   icon={
-                    <YStack y={1}>
+                    <YStack>
                       <BentoIcon scale={0.8} />
                     </YStack>
                   }
@@ -271,7 +284,7 @@ export const HeaderLinks = (props: HeaderProps) => {
 
       {forceShowAllLinks && (
         <>
-          <Separator bc="$color025" o={0.25} my="$2" />
+          <Separator bc="$color02" o={0.25} my="$2" />
           {!userSwr.data?.userDetails && (
             <Link asChild href="/login">
               <HeadAnchor grid>
@@ -300,7 +313,7 @@ export const HeaderLinks = (props: HeaderProps) => {
 
       {forceShowAllLinks && (
         <>
-          <Separator bc="$color025" o={0.25} my="$2" />
+          <Separator bc="$color02" o={0.25} my="$2" />
 
           <XStack fw="wrap" f={1} gap="$2" w="100%">
             {forceShowAllLinks && (
@@ -359,7 +372,7 @@ const CTAHeaderLink = ({
   description,
   forceShowAllLinks,
 }: HeaderProps & {
-  href: string
+  href: Href
   icon: React.ReactNode
   name: string
   description: string
@@ -371,6 +384,7 @@ const CTAHeaderLink = ({
       <HeadAnchor
         grid={forceShowAllLinks}
         fontSize={24}
+        mx={-2}
         $sm={{
           display: 'none',
         }}
@@ -756,7 +770,7 @@ const TooltipLabelLarge = ({
   href,
 }: { href: string; icon: any; title: string; subtitle: string }) => {
   return (
-    <Link asChild href={href}>
+    <Link asChild href={href as Href}>
       <YStack cur="pointer" f={1} ai="center" p="$7" br="$4" ov="hidden">
         <H2 ff="$silkscreen" f={1} fow="600" size="$7">
           {title}

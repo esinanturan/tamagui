@@ -1,6 +1,7 @@
 import type { Provider } from '@supabase/supabase-js'
 import { ThemeTint } from '@tamagui/logo'
 import { CheckCircle, LogOut, Star } from '@tamagui/lucide-icons'
+import { useRouter } from 'one'
 import { useState } from 'react'
 import {
   Avatar,
@@ -13,7 +14,6 @@ import {
   XStack,
   YStack,
 } from 'tamagui'
-import { useRouter } from 'vxs'
 import { Container } from '~/components/Containers'
 import { ButtonLink, Link } from '~/components/Link'
 import { Notice } from '~/components/Notice'
@@ -93,10 +93,6 @@ const Account = () => {
           <ButtonLink href="/account/items" size="$5">
             Items & Subscriptions
           </ButtonLink>
-
-          <ButtonLink href="https://studio.tamagui.dev" size="$5">
-            Studio
-          </ButtonLink>
         </ThemeTint>
       </XStack>
 
@@ -104,7 +100,7 @@ const Account = () => {
         <UserSettings />
       </YStack>
 
-      <YStack>
+      <YStack separator={<Separator />} gap="$5">
         <Paragraph ff="$mono">User ID: {userDetails?.id}</Paragraph>
       </YStack>
     </Container>
@@ -186,9 +182,7 @@ const ProfileContent = () => {
       {!!userDetails?.full_name && (
         <Paragraph theme="alt1">{userDetails?.full_name}</Paragraph>
       )}
-      <Paragraph theme="alt1">
-        {user?.email} <Link href="/account/change-email">(Change)</Link>
-      </Paragraph>
+      <Paragraph theme="alt1">{user?.email}</Paragraph>
     </XStack>
   )
 }
@@ -400,7 +394,7 @@ const SponsorButton = () => {
   return (
     <ButtonLink
       href="https://github.com/sponsors/natew"
-      theme="pink_alt1"
+      theme="pink"
       icon={<Star />}
       size="$3"
     >

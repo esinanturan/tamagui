@@ -1,5 +1,5 @@
 import { ThemeTint, ThemeTintAlt } from '@tamagui/logo'
-import { Link, useRouter } from 'vxs'
+import { Link, useRouter } from 'one'
 import { memo, useEffect } from 'react'
 import type { HeadingProps } from 'tamagui'
 import {
@@ -21,8 +21,8 @@ import { IS_SAFARI, useHoverGlow } from '~/components/HoverGlow'
 import { ThemeNameEffect } from '~/features/site/theme/ThemeNameEffect'
 import { LoadInter900 } from '~/features/site/fonts/LoadFonts'
 import { HeadInfo } from '~/components/HeadInfo'
-import { useUserTheme } from '~/features/site/theme/useUserTheme'
 import { useUser } from '~/features/user/useUser'
+import { useColorScheme } from '@vxrn/color-scheme'
 
 export default function StudioSplashPage() {
   const user = useUser()
@@ -31,7 +31,7 @@ export default function StudioSplashPage() {
 
   useEffect(() => {
     if (hasStudioAccess) {
-      router.replace('/studio/theme')
+      router.replace('/studio')
     }
   }, [hasStudioAccess])
 
@@ -159,7 +159,7 @@ export default function StudioSplashPage() {
 }
 
 const StudioScreen1 = memo(() => {
-  const [{ resolvedTheme }] = useUserTheme()
+  const [resolvedTheme] = useColorScheme()
   const isLight = resolvedTheme === 'light'
 
   const glow = useHoverGlow({

@@ -22,6 +22,7 @@ ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_URL
 ARG POSTMARK_SERVER_TOKEN
+ARG CLOUDFLARE_TURNSTILE_SECRET
 ARG SHOULD_UNLOCK_GIT_CRYPT
 ARG STRIPE_SECRET_KEY
 ARG STRIPE_SIGNING_SIGNATURE_SECRET
@@ -30,7 +31,9 @@ ARG SUPABASE_SERVICE_ROLE_KEY
 ARG TAKEOUT_RENEWAL_COUPON_ID
 ARG TRANSCRYPT_PASSWORD
 ARG URL
+ARG ONE_SERVER_URL
 ARG APP_NAME
+ARG DEEPSEEK_API_KEY
 
 # unlock
 RUN apt-get update && apt-get install -y git bsdmainutils vim-common
@@ -45,10 +48,8 @@ RUN git config --global user.email "you@example.com" && git init . && git add -A
 RUN ./scripts/unlock-repo.sh
 
 RUN corepack enable
-RUN corepack prepare yarn@4.3.1 --activate
+RUN corepack prepare yarn@4.4.0 --activate
 RUN yarn install --immutable
-RUN yarn profile react-19
-RUN yarn patch-package
 RUN yarn build:js
 RUN yarn build:app
 

@@ -9,7 +9,6 @@ import {
   createTamagui,
   useMedia,
 } from '@tamagui/sandbox-ui'
-import React from 'react'
 
 import { testColor } from './constants'
 import { baseStyle, nestedStyle } from './extract-spec-constants'
@@ -24,7 +23,9 @@ type TestProps = {
 const tamaguiConfig = createTamagui(config)
 
 export const Provider = (props) => (
-  <TamaguiProvider config={tamaguiConfig}>{props.children}</TamaguiProvider>
+  <TamaguiProvider defaultTheme="dark" config={tamaguiConfig}>
+    {props.children}
+  </TamaguiProvider>
 )
 
 const child = <Text>hello world</Text>

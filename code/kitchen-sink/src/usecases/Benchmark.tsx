@@ -1,22 +1,73 @@
-import { useMemo, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
-import { Button, Stack, Text, styled } from 'tamagui'
+// debug
+import React from 'react'
+import { Button, RefreshControlBase, StyleSheet, View } from 'react-native'
+import { Stack, Text, XStack, styled } from 'tamagui'
+
+// 123
 
 // disabling to avoid dep
-// import { ThemeProvider, createBox } from '@shopify/restyle'
-// const Box = createBox<any>()
-const ThemeProvider = Stack as any
-const Box = Stack as any
+import { ThemeProvider, createBox } from '@shopify/restyle'
+const Box = createBox<any>()
 
 import { TimedRender } from '../components/TimedRender'
+// import { CheckboxDemo } from '@tamagui/demos'
 
 export const Benchmark = () => {
   return (
     <>
-      <BenchmarkOne name="rn" />
-      <BenchmarkOne name="tama" />
-      <BenchmarkOne name="restyle" />
+      <Stack
+        // debug="verbose"
+        style={[{ backgroundColor: 'red', width: 100, height: 100 }]}
+      />
+      <BenchStyled />
     </>
+  )
+}
+
+const BenchStyled = () => {
+  return (
+    <>
+      <BenchRN />
+      <BenchTama />
+      <BenchRestyle />
+    </>
+  )
+}
+
+const StyledStack = styled(Stack, {
+  backgroundColor: 'red',
+  paddingTop: 5,
+  paddingBottom: 5,
+  width: 20,
+})
+
+const BenchmarkFrame = ({ name, children }) => {
+  const [x, setX] = React.useState(0)
+
+  return (
+    <>
+      <>
+        <Text style={{ marginTop: 20 }}>{name}</Text>
+        <Text>run: {x}</Text>
+        <Button title="Go" onPress={() => setX(Math.random())} />
+      </>
+
+      <TimedRender key={x}>{children}</TimedRender>
+    </>
+  )
+}
+
+const iterArr = new Array(1000).fill(0)
+
+const BenchTama = () => {
+  return (
+    <BenchmarkFrame name="tamagui">
+      <View style={{ flexDirection: 'row' }}>
+        {iterArr.map((_, i) => (
+          <StyledStack key={i} />
+        ))}
+      </View>
+    </BenchmarkFrame>
   )
 }
 
@@ -60,84 +111,43 @@ const theme = {
   },
 }
 
-const StyledStack = styled(Stack, {
-  borderColor: 'red',
-  borderWidth: 2,
-  padding: 5,
-})
-
-const BenchmarkOne = ({ name }) => {
-  const [x, setX] = useState(0)
-
-  return (
-    <>
-      {useMemo(() => {
-        return (
-          <>
-            <Text style={{ marginTop: 20 }}>{name}</Text>
-            <Button onPress={() => setX(Math.random())}>Go</Button>
-          </>
-        )
-      }, [])}
-      <>
-        {name === 'rn' && (
-          <>
-            <BenchRN key={x} />
-          </>
-        )}
-        {name === 'restyle' && (
-          <>
-            <ThemeProvider theme={theme}>
-              <BenchRestyle key={x} />
-            </ThemeProvider>
-          </>
-        )}
-        {name === 'tama' && (
-          <>
-            <BenchTama key={x} />
-          </>
-        )}
-      </>
-    </>
-  )
-}
-
-const iterArr = new Array(1000).fill(0)
-
-const BenchTama = () => {
-  return (
-    <TimedRender>
-      {iterArr.map((_, i) => (
-        <StyledStack key={i} />
-      ))}
-    </TimedRender>
-  )
-}
-
 const BenchRestyle = () => {
   return (
-    <TimedRender>
-      {iterArr.map((_, i) => (
-        <Box borderColor="red" borderWidth={2} padding="s" key={i} />
-      ))}
-    </TimedRender>
+    <ThemeProvider theme={theme}>
+      <BenchmarkFrame name="restyle">
+        <View style={{ flexDirection: 'row' }}>
+          {iterArr.map((_, i) => (
+            <Box
+              backgroundColor="red"
+              paddingTop="s"
+              paddingBottom="s"
+              width={20}
+              key={i}
+            />
+          ))}
+        </View>
+      </BenchmarkFrame>
+    </ThemeProvider>
   )
 }
 
 const styles = StyleSheet.create({
   style: {
-    borderColor: 'red',
-    borderWidth: 2,
-    padding: 5,
+    backgroundColor: 'red',
+    paddingTop: 5,
+    paddingBottom: 5,
+    width: 20,
   },
 })
 
 const BenchRN = () => {
   return (
-    <TimedRender>
-      {iterArr.map((_, i) => (
-        <View style={styles.style} key={i} />
-      ))}
-    </TimedRender>
+    <BenchmarkFrame name="rn">
+      <View style={{ flexDirection: 'row' }}>
+        {iterArr.map((_, i) => (
+          <View style={styles.style} key={i} />
+        ))}
+      </View>
+    </BenchmarkFrame>
   )
 }

@@ -1,16 +1,31 @@
+import type { Href } from 'one'
 import { CurrentRouteProvider, Data, Sections } from '@tamagui/bento'
-import { ThemeTint } from '@tamagui/logo'
+import { ThemeTint, ThemeTintAlt } from '@tamagui/logo'
 import { CircleDashed, Paintbrush } from '@tamagui/lucide-icons'
 import { Toast, useToastState } from '@tamagui/toast'
 import { startTransition } from 'react'
-import { Anchor, Button, H1, SizableText, Theme, View, XStack, YStack } from 'tamagui'
-import { Link, useLocalSearchParams } from 'vxs'
+import {
+  Anchor,
+  Button,
+  H1,
+  SizableText,
+  styled,
+  Theme,
+  View,
+  XStack,
+  YStack,
+} from 'tamagui'
+import { Link, useParams } from 'one'
 import { ContainerBento } from '~/components/Containers'
 import { BentoLogo } from '~/features/bento/BentoLogo'
 import { BentoPageFrame } from '~/features/bento/BentoPageFrame'
 import { useBentoStore } from '~/features/bento/BentoStore'
 import { DropTamaguiConfig } from '~/features/bento/DropTamaguiConfig'
 import { ThemeNameEffect } from '~/features/site/theme/ThemeNameEffect'
+import { listingData } from '@tamagui/bento/data'
+import { Text } from 'tamagui'
+
+import { ScrollView } from 'react-native'
 
 export const generateStaticParams = async () => {
   return Data.paths.map((x) => ({
@@ -19,7 +34,7 @@ export const generateStaticParams = async () => {
 }
 
 function useParts() {
-  const { parts } = useLocalSearchParams() as { parts: string[] }
+  const { parts } = useParams() as { parts: string[] }
   const [section, part] = parts
   return { section, part }
 }
@@ -30,11 +45,6 @@ export default function BentoPage() {
   const Comp = Sections?.[section]?.[part]
 
   if (!Comp) {
-    return null
-  }
-
-  // TODO for now not SSRing just client
-  if (typeof window === 'undefined') {
     return null
   }
 
@@ -50,7 +60,65 @@ export default function BentoPage() {
           <YStack py="$8" bg="$background">
             <YStack pe="none" fullscreen className="bg-grid" o={0.033} />
             <ContainerBento>
-              <Comp />
+              <XStack pos="relative" top={0}>
+                <View className="sticky">
+                  <SideBar ai="flex-end">
+                    {listingData.sections.map(({ parts, sectionName }, index) => (
+                      <ThemeTintAlt key={`${sectionName}-${name}`} offset={index}>
+                        <YStack ai="flex-end" gap="$4" key={sectionName}>
+                          <Text
+                            textTransform="uppercase"
+                            ff="$silkscreen"
+                            color="$color10"
+                            textAlign="right"
+                            px="$2"
+                          >
+                            {sectionName}
+                          </Text>
+
+                          <YStack ai="flex-end" gap="$2">
+                            {parts.map((partItem, index) => {
+                              const { route, name } = partItem
+                              const active = route === `/${section}/${part}`
+
+                              return (
+                                <Link
+                                  key={`${sectionName}-${name}`}
+                                  href={`/bento${route}` as Href}
+                                >
+                                  <View
+                                    py="$2"
+                                    px="$2"
+                                    borderRightWidth={2}
+                                    borderRightColor={
+                                      active ? '$accentColor' : '$background0'
+                                    }
+                                    hoverStyle={{ borderRightColor: '$color' }}
+                                    ai="center"
+                                    gap="$2"
+                                    flex={1}
+                                  >
+                                    <Text
+                                      textAlign="right"
+                                      color={active ? '$accentColor' : '$color10'}
+                                    >
+                                      {name}
+                                    </Text>
+                                  </View>
+                                </Link>
+                              )
+                            })}
+                          </YStack>
+                        </YStack>
+                      </ThemeTintAlt>
+                    ))}
+                  </SideBar>
+                </View>
+
+                <View w="100%" flex={1}>
+                  <Comp />
+                </View>
+              </XStack>
               <CurrentToast />
             </ContainerBento>
           </YStack>
@@ -170,3 +238,11 @@ const CurrentToast = () => {
     </Toast>
   )
 }
+
+const SideBar = styled(YStack, {
+  position: 'sticky' as any,
+  top: '$12',
+  gap: '$8',
+  px: '$8',
+  $lg: { dsp: 'none' },
+})

@@ -44,6 +44,7 @@ export const Footer = memo(() => {
             <ParagraphLink href="/docs/core/configuration">Configuration</ParagraphLink>
             <ParagraphLink href="/privacy">Privacy Policy</ParagraphLink>
             <ParagraphLink href="/takeout-policy">Fulfillment Policy</ParagraphLink>
+            <ParagraphLink href="/dpa">Data Processing Agreement</ParagraphLink>
             {/* <ParagraphLink href="/docs/api">API</ParagraphLink>
           <ParagraphLink href="/docs/frequently-asked-questions">FAQ</ParagraphLink> */}
           </YStack>
@@ -90,8 +91,8 @@ export const Footer = memo(() => {
               <ExternalIcon />
             </XStack>
             <XStack gap="$1" ai="center">
-              <ParagraphLink href="https://twitter.com/tamagui_js" target="_blank">
-                Twitter
+              <ParagraphLink href="https://x.com/tamagui_js" target="_blank">
+                X
               </ParagraphLink>
               <ExternalIcon />
             </XStack>

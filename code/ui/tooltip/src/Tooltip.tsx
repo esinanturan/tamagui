@@ -44,12 +44,12 @@ const TooltipContent = PopperContentFrame.extractable(
       const preventAnimation = React.useContext(PreventTooltipAnimationContext)
       const popper = usePopperContext(__scopeTooltip || TOOLTIP_SCOPE)
       const padding = !props.unstyled
-        ? props.padding ??
+        ? (props.padding ??
           props.size ??
           popper.size ??
           getSize('$true', {
             shift: -2,
-          })
+          }))
         : undefined
 
       return (
@@ -133,6 +133,12 @@ export const TooltipGroup = ({
   )
 }
 
+const setOpens = new Set<React.Dispatch<React.SetStateAction<boolean>>>()
+
+export const closeOpenTooltips = () => {
+  setOpens.forEach((x) => x(false))
+}
+
 const TooltipComponent = React.forwardRef(function Tooltip(
   props: ScopedTooltipProps<TooltipProps>,
   // no real ref here but React complaining need to see why see SandboxCustomStyledAnimatedTooltip.ts
@@ -179,8 +185,10 @@ const TooltipComponent = React.forwardRef(function Tooltip(
     const openIt = () => {
       setOpen(false)
     }
+    setOpens.add(setOpen)
     document.documentElement.addEventListener('scroll', openIt)
     return () => {
+      setOpens.delete(setOpen)
       document.documentElement.removeEventListener('scroll', openIt)
     }
   }, [open, disableAutoCloseOnScroll])
@@ -238,7 +246,6 @@ const TooltipComponent = React.forwardRef(function Tooltip(
         <PopoverContext.Provider
           contentId={contentId}
           triggerRef={triggerRef}
-          sheetBreakpoint={false}
           open={open}
           scope={__scopeTooltip || TOOLTIP_SCOPE}
           onOpenChange={setOpen}

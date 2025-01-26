@@ -1,16 +1,31 @@
 ---
-title: Install the Compiler
+title: Tamagui Compiler
 description: Adding the compiler to your apps
 ---
 
-For more background read the [Compiler About](/docs/intro/why-a-compiler) page,
-for performance see [Benchmarks](/docs/intro/benchmarks).
+<IntroParagraph>
+  The Tamagui Compiler significantly improves performance of both web and native applications
+  through partial analysis and view flattening.
+</IntroParagraph>
 
-It's important to note the compiler is optional, and it's much easier to get
-started by building your app out before you commit to the setup cost.
+See the [Benchmarks](/docs/intro/benchmarks). Note that the Tamagui Compiler is optional.
+It's much easier to start without setting it up, and add it once you're ready for production.
 
-The compiler generates built versions of your components and config into a
+The Compiler is a babel plugin that analyzes JSX and `styled` calls, and attempts to parse out all props and 
+values using some logic for Babel, and the Node `vm` package to pass in context and analyze expressions.
+
+The end result is plain old `div` (and other tag) output on web, or on native, outputting plain old React Native `View` and `Text`:
+
+<br />
+<br />
+<TamaguiExamplesCode />
+
+<Notice>
+  The compiler generates built versions of your components and config into a
 `.tamagui` directory. You'll want to add that directory to your `.gitignore`.
+</Notice>
+
+We have plugins for a variety of bundlers:
 
 ### Webpack
 
@@ -35,12 +50,10 @@ const tamaguiOptions = {
   importsWhitelist: ['constants.js', 'colors.js'],
   logTimings: true,
   disableExtraction: process.env.NODE_ENV === 'development',
-  // optional advanced optimization of styled() definitions within your app itself, not just ones in your `components` option
+  // optional advanced optimization of styled() definitions within your app itself, not just ones in your components option
   // default is false
   enableDynamicEvaluation: false,
 }
-
-const projectRoot = __dirname
 
 module.exports = {
   resolve: {
@@ -57,7 +70,7 @@ module.exports = {
         test: /\.[jt]sx?$/,
         // you'll likely want to adjust this helper function,
         // but it serves as a decent start that you can copy/paste from
-        exclude: path => shouldExclude(path, projectRoot, tamaguiOptions),
+        exclude: path => shouldExclude(path, __dirname, tamaguiOptions),
         use: [
           // optionally thread-loader for significantly faster compile!
           'thread-loader',
@@ -93,7 +106,7 @@ module.exports = {
       disableExtraction: process.env.NODE_ENV === 'development',
     }),
   ],
-
+}
 ```
 
 Some notes on the options:
@@ -112,16 +125,19 @@ See the [Vite guide](/docs/guides/vite) for more complete setup.
 Add `@tamagui/vite-plugin` and update your `vite.config.ts`:
 
 ```tsx
-import { tamaguiExtractPlugin, tamaguiPlugin } from '@tamagui/vite-plugin'
+import { tamaguiPlugin } from '@tamagui/vite-plugin'
 
 export default defineConfig({
   plugins: [
     tamaguiPlugin({
-      config: './src/tamagui.config.ts',
+      // points to your tamagui config file
+      config: 'src/tamagui.config.ts',
+      // points to any linked packages or node_modules
+      // that have tamagui components to optimize
       components: ['tamagui'],
+      // turns on the optimizing compiler
+      optimize: true,
     }),
-    // optional, adds the optimizing compiler:
-    tamaguiExtractPlugin(tamaguiConfig),
   ],
 })
 ```
@@ -163,27 +179,15 @@ export default withPlugins([
 
     // Advanced:
 
-    // Watches a file that uses @tamagui/theme-builder
-    // See the "Creating Themes" guide
-    themeBuilder: {
-      input: './themes-input.tsx',
-      output: './themes.tsx',
-    },
-
-    // adds mini-css-extract and css-minimizer-plugin, can fix issues with unique configurations
-    enableCSSOptimizations: false,
-    // disable tamagui config to make fonts easier to import
-    disableFontSupport: false,
-
     // Many packages give difficulty to the nextjs server-side (node) runtime when un-bundled.
-    // for example, tamagui configures aliases like `react-native` => `react-native-web`.
+    // for example, tamagui configures aliases like react-native => react-native-web.
     // if you're running into a module that has errors importing react-native, you'll want to
     // use a custom shouldExcludeFromServer function to include it (or override the default).
     // this is the exact same return type as webpack.externals.
     // returning undefined will let tamagui handle it, boolean or other values to override.
     shouldExcludeFromServer: ({ fullPath, request }) => {
       if (fullPath.includes('my-module')) {
-        return `commonjs ${commonjs}`
+        return 'commonjs ' + commonjs
       }
       if (request === 'some-hard-to-bundle-package') {
         return true
@@ -337,13 +341,6 @@ All compiler plugins accept the same options:
       default: 'false',
       description:
         '(Experimental) Enables further extracting of components that use theme values on native.',
-    },
-    {
-      name: 'emitSingleCSSFile',
-      require: false,
-      type: 'boolean',
-      default: 'false',
-      description: `(Experimental) Combines all CSS into one file, only available for Webpack for now. Must add lightningcss version 1.1.x`,
     },
   ]}
 />

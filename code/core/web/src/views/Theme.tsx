@@ -2,7 +2,8 @@ import { isWeb } from '@tamagui/constants'
 import type { MutableRefObject } from 'react'
 import React, { Children, cloneElement, forwardRef, isValidElement, useRef } from 'react'
 import { variableToString } from '../createVariable'
-import { ThemeManagerIDContext } from '../helpers/ThemeManagerContext'
+import { log } from '../helpers/log'
+import { ThemeManagerContext } from '../helpers/ThemeManagerContext'
 import type { ChangedThemeResponse } from '../hooks/useTheme'
 import { useChangeThemeEffect } from '../hooks/useTheme'
 import type { ThemeProps } from '../types'
@@ -49,7 +50,7 @@ export const Theme = forwardRef(function Theme({ children, ...props }: ThemeProp
 
   return getThemedChildren(themeState, finalChildren, props, isRoot, stateRef)
 })
-Theme['displayName'] = 'Theme'
+
 Theme['avoidForwardRef'] = true
 
 export function getThemedChildren(
@@ -63,11 +64,12 @@ export function getThemedChildren(
 
   // its always there.. should fix type
   if (!themeManager) {
-    throw new Error(
-      process.env.NODE_ENV === 'development'
-        ? `❌ No theme found, either incorrect name, potential duplicate tamagui deps, or TamaguiProvider not providing themes.`
-        : `❌ 005`
-    )
+    return children
+    // throw new Error(
+    //   process.env.NODE_ENV === 'development'
+    //     ? `❌ No theme found, either incorrect name, potential duplicate tamagui deps, or TamaguiProvider not providing themes.`
+    //     : `❌ 005`
+    // )
   }
 
   const { shallow, forceClassName } = props
@@ -75,10 +77,12 @@ export function getThemedChildren(
   // always be true if ever themed so we avoid re-parenting
   let shouldRenderChildrenWithTheme =
     isNewTheme ||
+    isRoot ||
     'inverse' in props ||
     'name' in props ||
-    stateRef.current.hasEverThemed ||
-    isRoot
+    'reset' in props ||
+    'forceClassName' in props ||
+    stateRef.current.hasEverThemed
 
   if (shouldRenderChildrenWithTheme) {
     stateRef.current.hasEverThemed = true
@@ -86,6 +90,15 @@ export function getThemedChildren(
 
   if (!shouldRenderChildrenWithTheme) {
     return children
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    if (shouldRenderChildrenWithTheme && props.debug === 'verbose') {
+      log(
+        `adding theme: isRoot ${isRoot}, inverse ${'inverse' in props}, isNewTheme ${isNewTheme}, hasEver ${stateRef.current.hasEverThemed}`,
+        props
+      )
+    }
   }
 
   let next = children
@@ -106,9 +119,9 @@ export function getThemedChildren(
   }
 
   const elementsWithContext = (
-    <ThemeManagerIDContext.Provider value={themeManager.id}>
+    <ThemeManagerContext.Provider value={themeManager}>
       {next}
-    </ThemeManagerIDContext.Provider>
+    </ThemeManagerContext.Provider>
   )
 
   if (forceClassName === false) {
@@ -143,7 +156,7 @@ function wrapThemeElements({
   }
 
   const inverse = themeState.inversed
-  const requiresExtraWrapper = inverse != null || forceClassName
+  const requiresExtraWrapper = typeof inverse === 'boolean' || forceClassName
 
   const { className, style } = getThemeClassNameAndStyle(themeState, isRoot)
 
@@ -161,6 +174,7 @@ function wrapThemeElements({
       : name.startsWith('dark')
         ? 't_dark is_inversed'
         : ''
+
     themedChildren = (
       <span className={`${inverse ? inverseClassName : ''} _dsp_contents`}>
         {themedChildren}

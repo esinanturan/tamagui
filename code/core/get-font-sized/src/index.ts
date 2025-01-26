@@ -1,7 +1,9 @@
+import { isClient } from '@tamagui/constants'
 import type {
   FontSizeTokens,
   GenericFont,
   TextProps,
+  TextStyle,
   VariantSpreadFunction,
 } from '@tamagui/core'
 import { getTokens } from '@tamagui/core'
@@ -11,17 +13,14 @@ export const getFontSized: VariantSpreadFunction<TextProps, FontSizeTokens> = (
   { font, fontFamily, props }
 ) => {
   if (!font) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn(
-        `Warning: No font found in props`,
-        { ...props },
-        `For a sized text component, you either need to set fontFamily directly, or through the "defaultFont" setting in your createTamagui config.`
-      )
+    return {
+      fontSize: sizeTokenIn,
     }
-    return
   }
 
   const sizeToken = sizeTokenIn === '$true' ? getDefaultSizeToken(font) : sizeTokenIn
+
+  const style: TextStyle = {}
 
   // size related, treat them as overrides
   const fontSize = font.size[sizeToken]
@@ -29,26 +28,24 @@ export const getFontSized: VariantSpreadFunction<TextProps, FontSizeTokens> = (
   const fontWeight = font.weight?.[sizeToken]
   const letterSpacing = font.letterSpacing?.[sizeToken]
   const textTransform = font.transform?.[sizeToken]
-
-  // not technically size related, treat them as fallbacks
   const fontStyle = props.fontStyle ?? font.style?.[sizeToken]
   const color = props.color ?? font.color?.[sizeToken]
 
-  const style = {
-    color,
-    fontStyle,
-    textTransform,
-    fontFamily,
-    fontWeight,
-    letterSpacing,
-    fontSize,
-    lineHeight,
-  }
+  if (fontStyle) style.fontStyle = fontStyle
+  if (textTransform) style.textTransform = textTransform
+  if (fontFamily) style.fontFamily = fontFamily
+  if (fontWeight) style.fontWeight = fontWeight
+  if (letterSpacing) style.letterSpacing = letterSpacing
+  if (fontSize) style.fontSize = fontSize
+  if (lineHeight) style.lineHeight = lineHeight
+  if (color) style.color = color
 
   if (process.env.NODE_ENV === 'development') {
     if (props['debug'] && props['debug'] === 'verbose') {
       console.groupCollapsed('  🔹 getFontSized', sizeTokenIn, sizeToken)
-      console.info({ style, props, font })
+      if (isClient) {
+        console.info({ style, props, font })
+      }
       console.groupEnd()
     }
   }

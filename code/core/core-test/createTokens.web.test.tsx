@@ -20,9 +20,9 @@ test('color name no dot', () => {
       'yellow.10': {
         isVar: true,
         key: '$yellow.10',
-        name: 'color-1',
+        name: 'c-yellow--10',
         val: 'yellow',
-        variable: 'var(--color-1)',
+        variable: 'var(--c-yellow--10)',
       },
     },
   })

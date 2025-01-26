@@ -16,7 +16,7 @@ export default () => {
       /> */}
 
       <AnimatePresence exitBeforeEnter>
-        <AnimatedHeading index={0} Component={H1} color="$pink10" debug="verbose">
+        <AnimatedHeading index={0} Component={H1} color="$pink10">
           Swappable
         </AnimatedHeading>
       </AnimatePresence>
@@ -67,7 +67,7 @@ const AnimatedHeading = memo(
           // }}
           // @ts-ignore
           fontFamily={`$${family}`}
-          textShadowColor="$shadowColorFocus"
+          textShadowColor="$shadow2"
           textShadowRadius={3}
           textShadowOffset={{ width: 0, height: 3 }}
           ellipse

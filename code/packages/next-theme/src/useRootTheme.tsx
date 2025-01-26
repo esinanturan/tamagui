@@ -1,9 +1,14 @@
+import React from 'react'
 import { isClient } from '@tamagui/constants'
-import { useState } from 'react'
 
 import type { ColorScheme } from './types'
 
-export const useRootTheme = ({ fallback = 'light' }: { fallback?: ColorScheme } = {}) => {
+export const useRootTheme = ({
+  fallback = 'light',
+}: { fallback?: ColorScheme } = {}): [
+  ColorScheme,
+  React.Dispatch<React.SetStateAction<ColorScheme>>,
+] => {
   let initialVal = fallback
 
   if (isClient) {
@@ -16,5 +21,5 @@ export const useRootTheme = ({ fallback = 'light' }: { fallback?: ColorScheme } 
         : fallback
   }
 
-  return useState<ColorScheme>(initialVal)
+  return React.useState<ColorScheme>(initialVal)
 }

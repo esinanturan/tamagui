@@ -1,22 +1,22 @@
-import { useContext, useEffect } from 'react'
-
+import React from 'react'
 import { getConfig } from '../config'
 import { ComponentContext } from '../contexts/ComponentContext'
-import { subscribeToContextGroup, useComponentState } from '../createComponent'
 import { useSplitStyles } from '../helpers/getSplitStyles'
+import { subscribeToContextGroup } from '../helpers/subscribeToContextGroup'
 import type { SplitStyleProps, StaticConfig, ThemeParsed, UseMediaState } from '../types'
 import { Stack } from '../views/Stack'
 import type { ViewProps, ViewStyle } from '../views/View'
+import { useComponentState } from './useComponentState'
 import { useMedia } from './useMedia'
 import { useThemeWithState } from './useTheme'
 
 type UsePropsOptions = Pick<
   SplitStyleProps,
-  'noExpand' | 'noNormalize' | 'noClassNames' | 'resolveValues'
+  'noExpand' | 'noNormalize' | 'noClass' | 'resolveValues'
 > & {
   disableExpandShorthands?: boolean
   forComponent?: { staticConfig: StaticConfig }
-  noClassNames?: boolean
+  noClass?: boolean
 }
 
 export type PropsWithoutMediaStyles<A> = {
@@ -78,7 +78,7 @@ export function usePropsAndStyle<A extends PropsLikeObject>(
     name: 'theme' in props ? props.theme : undefined,
     inverse: 'themeInverse' in props ? props.themeInverse : undefined,
   })
-  const componentContext = useContext(ComponentContext as any) as any
+  const componentContext = React.useContext(ComponentContext as any) as any
   const { state, disabled, setStateShallow } = useComponentState(
     props,
     componentContext,
@@ -86,7 +86,7 @@ export function usePropsAndStyle<A extends PropsLikeObject>(
     getConfig()
   )
 
-  const media = useMedia()
+  const mediaState = useMedia()
   const splitStyles = useSplitStyles(
     props,
     staticConfig,
@@ -95,10 +95,10 @@ export function usePropsAndStyle<A extends PropsLikeObject>(
     state,
     {
       isAnimated: false,
-      mediaState: media,
+      mediaState,
       noSkip: true,
       noMergeStyle: true,
-      noClassNames: true,
+      noClass: true,
       resolveValues: 'auto',
       ...opts,
     },
@@ -108,7 +108,7 @@ export function usePropsAndStyle<A extends PropsLikeObject>(
 
   const { mediaGroups, pseudoGroups } = splitStyles
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (disabled) {
       return
     }
@@ -132,5 +132,5 @@ export function usePropsAndStyle<A extends PropsLikeObject>(
     mediaGroups ? Object.keys([...mediaGroups]).join('') : 0,
   ])
 
-  return [splitStyles.viewProps, splitStyles.style || {}, theme, media] as any
+  return [splitStyles.viewProps, splitStyles.style || {}, theme, mediaState] as any
 }

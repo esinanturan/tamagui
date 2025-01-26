@@ -1,36 +1,24 @@
 {
   "workbench.preferredDarkColorTheme": "Monochrome Dark",
   "workbench.preferredLightColorTheme": "Min Light",
-  
   "typescript.tsdk": "node_modules/typescript/lib",
-  "search.exclude": {
-    "**/node_modules": true,
-    "**/bower_components": true,
-    "**/*.code-search": true,
-    "**/.tamagui": true,
-    "**/.next": true
-  },
-  "editor.tabCompletion": "on",
-  "diffEditor.codeLens": true,
-  "explorer.fileNesting.enabled": true,
-  "explorer.fileNesting.patterns": {
-    "package.json": "package-lock.json, yarn.lock",
-    "*.js": "${capture}.js.map, ${capture}.d.ts, ${capture}.d.ts.map",
-    "*.mjs": "${capture}.mjs.map, ${capture}.d.ts, ${capture}.d.ts.map",
-    "*.ts": "$(capture).test.ts, $(capture).test.tsx, $(capture).test.node.ts, $(capture).test.node.tsx, $(capture).test.android.ts, $(capture).test.android.tsx",
-    "*.tsx": "$(capture).test.ts, $(capture).test.tsx, $(capture).test.node.ts, $(capture).test.node.tsx, $(capture).test.android.ts, $(capture).test.android.tsx"
-  },
   "[json]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescriptreact]": {
     "editor.defaultFormatter": "biomejs.biome"
   },
   "cSpell.words": [
     "Bento",
-    "chromeless",
-    "deopt",
-    "Lucide",
-    "tamagui",
-    "Unflattened",
-    "unselectable"
-  ],
-  "cSpell.enabled": false
+    "Microinteractions"
+  ]
 }

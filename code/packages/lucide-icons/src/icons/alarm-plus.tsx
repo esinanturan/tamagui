@@ -1,25 +1,8 @@
+import React from 'react'
 import type { IconProps } from '@tamagui/helpers-icon'
 import { themed } from '@tamagui/helpers-icon'
-import PropTypes from 'prop-types'
-import React, { memo } from 'react'
-import {
-  Defs,
-  Ellipse,
-  G,
-  Line,
-  LinearGradient,
-  Path,
-  Polygon,
-  Polyline,
-  RadialGradient,
-  Rect,
-  Stop,
-  Svg,
-  Symbol,
-  Use,
-  Circle as _Circle,
-  Text as _Text,
-} from 'react-native-svg'
+
+import { Path, Svg, Circle as _Circle } from 'react-native-svg'
 
 const Icon = (props) => {
   const { color = 'black', size = 24, ...otherProps } = props
@@ -48,4 +31,4 @@ const Icon = (props) => {
 
 Icon.displayName = 'AlarmPlus'
 
-export const AlarmPlus = memo<IconProps>(themed(Icon))
+export const AlarmPlus = React.memo<IconProps>(themed(Icon))

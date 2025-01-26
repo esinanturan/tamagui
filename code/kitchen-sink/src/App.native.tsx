@@ -1,9 +1,8 @@
 import { ToastViewport } from '@tamagui/sandbox-ui'
 import { useFonts } from 'expo-font'
-import { useEffect, useMemo, useState } from 'react'
+import React from 'react'
 import { Appearance, Platform, useColorScheme } from 'react-native'
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context'
-
 import { Navigation } from './Navigation'
 import { Provider } from './provider'
 import { ThemeContext } from './useKitchenSinkTheme'
@@ -13,7 +12,7 @@ if (Platform.OS === 'ios') {
 }
 
 export default function App() {
-  const [theme, setTheme] = useState(Appearance.getColorScheme())
+  const [theme, setTheme] = React.useState(Appearance.getColorScheme())
   const [loaded] = useFonts({
     Inter: require('@tamagui/font-inter/otf/Inter-Medium.otf'),
     InterBold: require('@tamagui/font-inter/otf/Inter-Bold.otf'),
@@ -21,15 +20,11 @@ export default function App() {
 
   const colorScheme = useColorScheme()
 
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     setTheme(colorScheme)
   }, [colorScheme])
 
-  const children = useMemo(() => {
-    return <Navigation />
-  }, [])
-
-  const themeContext = useMemo(() => {
+  const themeContext = React.useMemo(() => {
     return {
       value: theme,
       set: (next) => {
@@ -47,7 +42,7 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeContext.Provider value={themeContext}>
         <Provider defaultTheme={theme as any}>
-          {children}
+          <Navigation />
           <SafeToastViewport />
         </Provider>
       </ThemeContext.Provider>

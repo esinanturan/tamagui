@@ -1,12 +1,12 @@
-import { useLayoutEffect, useState } from 'react'
+import React from 'react'
 import { Text, View } from 'react-native'
 
 export function TimedRender(props) {
-  const [start] = useState(Date.now())
-  const [end, setEnd] = useState(0)
+  const [start] = React.useState(performance.now())
+  const [end, setEnd] = React.useState(0)
 
-  useLayoutEffect(() => {
-    setEnd(Date.now())
+  React.useLayoutEffect(() => {
+    setEnd(performance.now())
   }, [])
 
   return (

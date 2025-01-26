@@ -32,7 +32,7 @@ Tamagui comes in three parts:
 
 [**Tamagui Static**](#overview-of-tamaguistatic) (`@tamagui/static`) is an optimizing compiler on top of Core, turning even inline styles sprinkled with logic into atomic CSS and minimal JS, flattening your view tree for maximum performance.
 
-[**Tamagui UI**](#overview-of-tamagui) (`tamagui`) is a component kit built on top of the incredibly powerful theme primitives of `core`. That, alongside composable-component APIs and complete size control enables a new level of control not seen before in a UI kit.
+[**Tamagui UI**](#overview-of-tamagui) (`tamagui`) is a component kit built on top of the incredibly powerful theme primitives of `core`. That, alongside compound-component APIs and complete size control enables a new level of control not seen before in a UI kit.
 
 ---
 
@@ -359,22 +359,19 @@ The compiler now supports analyzing components outside of just your design syste
 Tamagui now fully works [with Vite 3 and 4](/docs/guides/vite), both with the compiler and without. A simple `vite.config.js` would look like this:
 
 ```tsx
-import { tamaguiExtractPlugin, tamaguiPlugin } from '@tamagui/vite-plugin'
+import { tamaguiPlugin } from '@tamagui/vite-plugin'
 import react from '@vitejs/plugin-react-swc'
 import { defineConfig } from 'vite'
-
-const tamaguiCompilerConfig = {
-  components: ['tamagui'],
-  config: 'tamagui.config.ts',
-  useReactNativeWebLite: true,
-}
 
 export default defineConfig({
   clearScreen: false,
   plugins: [
     react(),
-    tamaguiPlugin(tamaguiCompilerConfig),
-    tamaguiExtractPlugin(tamaguiCompilerConfig),
+    tamaguiPlugin({
+      optimize: true, // turns on the optimizing compiler
+      components: ['tamagui'],
+      config: 'tamagui.config.ts',
+    }),
   ],
 })
 ```
@@ -393,7 +390,7 @@ Tamagui UI is a suite of React components and hooks that adapt nicely to both Na
 - Lightweight default styles included but completely customizable.
 - **Complete theme control** - totally transform the look and feel down to individual components without fuss, even avoiding re-renders on theme changes (web).
 - **Complete size control** - every component can be scaled up/down based on your custom design system tokens.
-- **Composable Component APIs** - enabling much more control over styling.
+- **Compound Component APIs** - enabling much more control over styling.
 - A novel **Adapt** component allows for completely changing UI based on platform and media query.
 
 ---
@@ -402,7 +399,7 @@ Tamagui UI is a suite of React components and hooks that adapt nicely to both Na
 
 ### A whole lot of new components 🎁
 
-We've seen the addition of seven new components. Each comes with composable component API for much more complete control over each piece of the components visuals and behavior.
+We've seen the addition of seven new components. Each comes with compound component API for much more complete control over each piece of the components visuals and behavior.
 
 We owe thanks to both [Radix](https://www.radix-ui.com) and [Floating UI](https://floating-ui.com) for making these much easier to build.
 
@@ -638,7 +635,7 @@ There are many exciting features on the table as well, including:
 
 ## Sponsors
 
-<IntroParagraph>Tamagui is fully funded by Github Sponsors.</IntroParagraph>
+<IntroParagraph>Tamagui is fully funded by GitHub Sponsors.</IntroParagraph>
 
 I love working on Tamagui, and there's a wealth of concrete and interesting ways for it to mature. The motivation is to take things slowly, do them right, and stay fully OSS.
 
@@ -699,7 +696,7 @@ We've had 38 new contributors since early this year, exponentially increasing! T
 
 Early sponsors have made a huge difference: I owe a large thank you to [Vercel](https://vercel.com), [Codingscape](https://codingscape.com), [QuestPortal](https://www.questportal.com) and [BeatGig](https://beatgig.com), the first corporate sponsors ❤️.
 
-Tamagui draws inspiration and small areas of code from some incredible other libraries: [Radix](https://www.radix-ui.com/) provided much of the composable component APIs, [Floating UI](https://floating-ui.com/) handles all of the floating elements positioning, [Moti](https://moti.fyi) which served as a start point for the animation drivers, and [Framer Motion](https://github.com/framer/motion) for the nifty AnimatePresence functionality.
+Tamagui draws inspiration and small areas of code from some incredible other libraries: [Radix](https://www.radix-ui.com/) provided much of the compound component APIs, [Floating UI](https://floating-ui.com/) handles all of the floating elements positioning, [Moti](https://moti.fyi) which served as a start point for the animation drivers, and [Framer Motion](https://github.com/framer/motion) for the nifty AnimatePresence functionality.
 
 ---
 

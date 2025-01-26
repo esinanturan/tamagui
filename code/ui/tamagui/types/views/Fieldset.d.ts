@@ -6,7 +6,7 @@ export declare const Fieldset: import("@tamagui/core").TamaguiComponent<import("
         bottom?: number;
         left?: number;
         right?: number;
-    } | undefined;
+    } | null | undefined;
     horizontal?: boolean | undefined;
     fullscreen?: boolean | undefined;
 }, import("@tamagui/core").StaticConfigPublic>;

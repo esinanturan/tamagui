@@ -1,9 +1,6 @@
-import { RefObject } from 'react'
-
-import type { GetStyleResult, StaticConfig, TamaguiComponentStateRef } from './types'
-import { TamaguiElement } from './types'
-import type { TamaguiComponentState } from './interfaces/TamaguiComponentState'
 import type { TamaguiComponentEvents } from './interfaces/TamaguiComponentEvents'
+import type { TamaguiComponentState } from './interfaces/TamaguiComponentState'
+import type { GetStyleResult, StaticConfig, TamaguiComponentStateRef } from './types'
 
 export const hooks: InternalHooks = {}
 
@@ -20,6 +17,8 @@ type InternalHooks = {
     willHydrate?: boolean
   ) => any
 
+  setElementProps?: (node?: any) => void
+
   useEvents?: (
     viewProps: Record<string, any>,
     events: TamaguiComponentEvents | null,
@@ -28,13 +27,7 @@ type InternalHooks = {
     staticConfig: StaticConfig
   ) => any
 
-  useChildren?: (
-    elementType: any,
-    children: any,
-    viewProps: Record<string, any>,
-    events: TamaguiComponentEvents | null,
-    staticConfig: StaticConfig
-  ) => any
+  useChildren?: (elementType: any, children: any, viewProps: Record<string, any>) => any
 
   getBaseViews?: () => {
     View: any

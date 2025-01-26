@@ -1,7 +1,6 @@
-import { ThemeTint, useTint } from '@tamagui/logo'
+import { ThemeTint } from '@tamagui/logo'
 import { ArrowLeft } from '@tamagui/lucide-icons'
-import type { Frontmatter } from '@tamagui/mdx'
-import { usePathname } from 'vxs'
+import type { Frontmatter } from '@tamagui/mdx-2'
 import {
   Button,
   H1,
@@ -11,11 +10,11 @@ import {
   Paragraph,
   Separator,
   Spacer,
-  Theme,
   XStack,
   YStack,
 } from 'tamagui'
 import { LinearGradient } from 'tamagui/linear-gradient'
+import { usePathname } from 'one'
 import { Container } from '~/components/Containers'
 import { Link } from '~/components/Link'
 import { authors } from '~/data/authors'
@@ -60,7 +59,7 @@ export function BlogArticleHeader({ frontmatter }: BlogPost) {
           {/* <Avatar src={authors[data.by].avatar} mr={2} /> */}
 
           <Link
-            href={`https://twitter.com/${authors?.[frontmatter.by || '']?.twitter}`}
+            href={`https://x.com/${authors?.[frontmatter.by || '']?.twitter}`}
             rel="noopener noreferrer"
             target="_blank"
           >
@@ -111,9 +110,9 @@ export function BlogSlugPage(props: BlogPost) {
   const authorTwitter = authors?.[frontmatter.by || '']?.twitter
   const tweetText = `${frontmatter.title} by @${authorTwitter} on the @tamagui_js blog.`
   const tweetUrl = `https://tamagui.dev/blog/${frontmatter.slug}`
-  const twitterShare = `https://twitter.com/intent/tweet?text="${enc(
+  const twitterShare = `https://x.com/intent/tweet?text="${enc(
     tweetText
-  )}"&url=${enc(tweetUrl)}`
+  )}"&url=${enc(tweetUrl)}` as const
 
   return (
     <>

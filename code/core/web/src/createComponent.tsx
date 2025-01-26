@@ -1,52 +1,22 @@
 import { composeRefs } from '@tamagui/compose-refs'
 import { isClient, isServer, isWeb, useIsomorphicLayoutEffect } from '@tamagui/constants'
-import {
-  StyleObjectIdentifier,
-  StyleObjectRules,
-  composeEventHandlers,
-  validStyles,
-} from '@tamagui/helpers'
-import React, {
-  Children,
-  Fragment,
-  createElement,
-  forwardRef,
-  memo,
-  useContext,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
-
-import { devConfig, getConfig, onConfiguredOnce } from './config'
+import { composeEventHandlers, validStyles } from '@tamagui/helpers'
+import React from 'react'
+import { devConfig, onConfiguredOnce } from './config'
 import { stackDefaultStyles } from './constants/constants'
 import { isDevTools } from './constants/isDevTools'
 import { ComponentContext } from './contexts/ComponentContext'
 import { didGetVariableValue, setDidGetVariableValue } from './createVariable'
-import {
-  defaultComponentState,
-  defaultComponentStateMounted,
-  defaultComponentStateShouldEnter,
-} from './defaultComponentState'
-import {
-  createShallowSetState,
-  mergeIfNotShallowEqual,
-} from './helpers/createShallowSetState'
+import { defaultComponentStateMounted } from './defaultComponentState'
 import { useSplitStyles } from './helpers/getSplitStyles'
-import { isObj } from './helpers/isObj'
 import { log } from './helpers/log'
 import { mergeProps } from './helpers/mergeProps'
 import { setElementProps } from './helpers/setElementProps'
+import { subscribeToContextGroup } from './helpers/subscribeToContextGroup'
 import { themeable } from './helpers/themeable'
-import { useDidHydrateOnce } from './hooks/useDidHydrateOnce'
-import {
-  getMediaState,
-  mediaKeyMatch,
-  setMediaShouldUpdate,
-  useMedia,
-} from './hooks/useMedia'
+import { wrapStyleTags } from './helpers/wrapStyleTags'
+import { useComponentState } from './hooks/useComponentState'
+import { setMediaShouldUpdate, useMedia } from './hooks/useMedia'
 import { useThemeWithState } from './hooks/useTheme'
 import type { TamaguiComponentEvents } from './interfaces/TamaguiComponentEvents'
 import type { TamaguiComponentState } from './interfaces/TamaguiComponentState'
@@ -55,8 +25,6 @@ import { hooks } from './setupHooks'
 import type {
   ComponentContextI,
   DebugProp,
-  GroupState,
-  GroupStateListener,
   LayoutEvent,
   SizeTokens,
   SpaceDirection,
@@ -68,7 +36,6 @@ import type {
   StaticConfig,
   StyleableOptions,
   TamaguiComponent,
-  TamaguiComponentStateRef,
   TamaguiElement,
   TamaguiInternalConfig,
   TextProps,
@@ -83,7 +50,6 @@ import { ThemeDebug } from './views/ThemeDebug'
 /**
  * All things that need one-time setup after createTamagui is called
  */
-let tamaguiConfig: TamaguiInternalConfig
 let time: any
 
 let debugKeyListeners: Set<Function> | undefined
@@ -157,219 +123,6 @@ if (typeof document !== 'undefined') {
   }
 }
 
-export const useComponentState = (
-  props: StackProps | TextProps | Record<string, any>,
-  { animationDriver, groups }: ComponentContextI,
-  staticConfig: StaticConfig,
-  config: TamaguiInternalConfig
-) => {
-  const useAnimations = animationDriver?.useAnimations as UseAnimationHook | undefined
-
-  const stateRef = useRef<TamaguiComponentStateRef>(
-    undefined as any as TamaguiComponentStateRef
-  )
-  if (!stateRef.current) {
-    stateRef.current = {}
-  }
-
-  // after we get states mount we need to turn off isAnimated for server side
-  const hasAnimationProp = Boolean(
-    'animation' in props || (props.style && hasAnimatedStyleValue(props.style))
-  )
-
-  // disable for now still ssr issues
-  const supportsCSSVars = animationDriver?.supportsCSSVars
-  const curStateRef = stateRef.current
-
-  const willBeAnimatedClient = (() => {
-    const next = !!(hasAnimationProp && !staticConfig.isHOC && useAnimations)
-    return Boolean(next || curStateRef.hasAnimated)
-  })()
-
-  const willBeAnimated = !isServer && willBeAnimatedClient
-
-  // once animated, always animated to preserve hooks / vdom structure
-  if (willBeAnimated && !curStateRef.hasAnimated) {
-    curStateRef.hasAnimated = true
-  }
-
-  // HOOK
-  const presence =
-    (willBeAnimated &&
-      props['animatePresence'] !== false &&
-      animationDriver?.usePresence?.()) ||
-    null
-  const presenceState = presence?.[2]
-  const isExiting = presenceState?.isPresent === false
-  const isEntering = presenceState?.isPresent === true && presenceState.initial !== false
-
-  const hasEnterStyle = !!props.enterStyle
-  // finish animated logic, avoid isAnimated when unmounted
-  const hasRNAnimation = hasAnimationProp && animationDriver?.isReactNative
-
-  if (process.env.NODE_ENV === 'development' && time) time`pre-use-state`
-
-  const hasEnterState = hasEnterStyle || isEntering
-
-  // this can be conditional because its only ever needed with animations
-  const didHydrateOnce = willBeAnimated ? useDidHydrateOnce() : true
-  const shouldEnter = hasEnterState || (!didHydrateOnce && hasRNAnimation)
-  const shouldEnterFromUnhydrated = isWeb && !didHydrateOnce
-
-  const initialState = shouldEnter
-    ? // on the very first render we switch all spring animation drivers to css rendering
-      // this is because we need to use css variables, which they don't support to do proper SSR
-      // without flickers of the wrong colors.
-      // but once we do that initial hydration and we are in client side rendering mode,
-      // we can avoid the extra re-render on mount
-      shouldEnterFromUnhydrated
-      ? defaultComponentState
-      : defaultComponentStateShouldEnter
-    : defaultComponentStateMounted
-
-  // will be nice to deprecate half of these:
-  const disabled = isDisabled(props)
-
-  if (disabled != null) {
-    initialState.disabled = disabled
-  }
-
-  // HOOK
-  const states = useState<TamaguiComponentState>(initialState)
-
-  const state = props.forceStyle ? { ...states[0], [props.forceStyle]: true } : states[0]
-  const setState = states[1]
-
-  const isHydrated = state.unmounted === false || state.unmounted === 'should-enter'
-
-  // only web server + initial client render run this when not hydrated:
-  let isAnimated = willBeAnimated
-  if (isWeb && hasRNAnimation && !staticConfig.isHOC && state.unmounted === true) {
-    isAnimated = false
-    curStateRef.willHydrate = true
-  }
-
-  // immediately update disabled state and reset component state
-  if (disabled !== state.disabled) {
-    state.disabled = disabled
-    // if disabled remove all press/focus/hover states
-    if (disabled) {
-      Object.assign(state, defaultComponentStateMounted)
-    }
-    setState({ ...state })
-  }
-
-  let setStateShallow = createShallowSetState(setState, disabled, false, props.debug)
-
-  // if (isHydrated && state.unmounted === 'should-enter') {
-  //   state.unmounted = true
-  // }
-
-  // set enter/exit variants onto our new props object
-  if (presenceState && isAnimated && isHydrated && staticConfig.variants) {
-    if (process.env.NODE_ENV === 'development' && props.debug === 'verbose') {
-      console.warn(`has presenceState ${JSON.stringify(presenceState)}`)
-    }
-    const { enterVariant, exitVariant, enterExitVariant, custom } = presenceState
-    if (isObj(custom)) {
-      Object.assign(props, custom)
-    }
-    const exv = exitVariant ?? enterExitVariant
-    const env = enterVariant ?? enterExitVariant
-    if (state.unmounted && env && staticConfig.variants[env]) {
-      if (process.env.NODE_ENV === 'development' && props.debug === 'verbose') {
-        console.warn(`Animating presence ENTER "${env}"`)
-      }
-      props[env] = true
-    } else if (isExiting && exv) {
-      if (process.env.NODE_ENV === 'development' && props.debug === 'verbose') {
-        console.warn(`Animating presence EXIT "${exv}"`)
-      }
-      props[exv] = exitVariant !== enterExitVariant
-    }
-  }
-
-  let shouldAvoidClasses = !isWeb
-
-  // on server for SSR and animation compat added the && isHydrated but perhaps we want
-  // disableClassName="until-hydrated" to be more straightforward
-  // see issue if not, Button sets disableClassName to true <Button animation="" /> with
-  // the react-native driver errors because it tries to animate var(--color) to rbga(..)
-  if (isWeb) {
-    const { disableClassName } = props
-
-    const isAnimatedAndHydrated =
-      isAnimated && !supportsCSSVars && didHydrateOnce && !isServer
-
-    const isClassNameDisabled =
-      !staticConfig.acceptsClassName && (config.disableSSR || didHydrateOnce)
-
-    const isDisabledManually =
-      disableClassName && !isServer && didHydrateOnce && state.unmounted === true
-
-    if (isAnimatedAndHydrated || isDisabledManually || isClassNameDisabled) {
-      shouldAvoidClasses = true
-    }
-  }
-
-  const groupName = props.group as any as string
-
-  if (groupName && !curStateRef.group) {
-    const listeners = new Set<GroupStateListener>()
-    curStateRef.group = {
-      listeners,
-      emit(name, state) {
-        listeners.forEach((l) => l(name, state))
-      },
-      subscribe(cb) {
-        listeners.add(cb)
-        return () => {
-          listeners.delete(cb)
-        }
-      },
-    }
-  }
-
-  if (groupName) {
-    // when we set state we also set our group state and emit an event for children listening:
-    const groupContextState = groups.state
-    const og = setStateShallow
-    setStateShallow = (state) => {
-      og(state)
-      curStateRef.group!.emit(groupName, {
-        pseudo: state,
-      })
-      // and mutate the current since its concurrent safe (children throw it in useState on mount)
-      const next = {
-        ...groupContextState[groupName],
-        ...state,
-      }
-      groupContextState[groupName] = next
-    }
-  }
-
-  return {
-    curStateRef,
-    disabled,
-    groupName,
-    hasAnimationProp,
-    hasEnterStyle,
-    isAnimated,
-    isExiting,
-    isHydrated,
-    presence,
-    presenceState,
-    setState,
-    setStateShallow,
-    shouldAvoidClasses,
-    state,
-    stateRef,
-    supportsCSSVars,
-    willBeAnimated,
-    willBeAnimatedClient,
-  }
-}
-
 /**
  * Only on native do we need the actual underlying View/Text
  * On the web we avoid react-native dep altogether.
@@ -415,14 +168,7 @@ export function createComponent<
     }
   })
 
-  const {
-    Component,
-    isText,
-    isZStack,
-    isHOC,
-    validStyles = {},
-    variants = {},
-  } = staticConfig
+  const { Component, isText, isZStack, isHOC } = staticConfig
 
   if (process.env.NODE_ENV === 'development' && staticConfig.defaultProps?.['debug']) {
     if (process.env.IS_STATIC !== 'is_static') {
@@ -434,9 +180,8 @@ export function createComponent<
     }
   }
 
-  const component = forwardRef<Ref, ComponentPropTypes>((propsIn, forwardedRef) => {
-    // HOOK
-    const internalID = process.env.NODE_ENV === 'development' ? useId() : ''
+  const component = React.forwardRef<Ref, ComponentPropTypes>((propsIn, forwardedRef) => {
+    const internalID = process.env.NODE_ENV === 'development' ? React.useId() : ''
 
     if (process.env.NODE_ENV === 'development') {
       if (startVisualizer) {
@@ -465,8 +210,7 @@ export function createComponent<
       }
     }
 
-    // HOOK
-    const componentContext = useContext(ComponentContext)
+    const componentContext = React.useContext(ComponentContext)
 
     // set variants through context
     // order is after default props but before props
@@ -476,30 +220,35 @@ export function createComponent<
     const { context, isReactNative } = staticConfig
 
     if (context) {
-      // HOOK 3 (-1 if production)
-      contextValue = useContext(context)
-      const { inverseShorthands } = getConfig()
-      for (const key in context.props) {
-        const propVal =
-          // because its after default props but before props this annoying amount of checks
-          propsIn[key] ??
-          propsIn[inverseShorthands[key]] ??
-          defaultProps?.[key] ??
-          defaultProps?.[inverseShorthands[key]]
-        // if not set, use context
-        if (propVal === undefined) {
-          if (contextValue) {
-            const isValidValue = key in validStyles || key in variants
-            if (isValidValue) {
+      contextValue = React.useContext(context)
+
+      if (contextValue) {
+        if (
+          process.env.NODE_ENV === 'development' &&
+          defaultProps?.['debug'] === 'verbose'
+        ) {
+          log(` 👇 contextValue`, contextValue)
+        }
+
+        const shorthands = config?.shorthands
+        for (const key in context.props) {
+          const propVal = propsIn[key] || propsIn[shorthands?.[propsIn as any]]
+
+          // if not set, use context
+          if (propVal === undefined) {
+            const val = contextValue?.[key]
+            if (val !== undefined) {
               styledContextProps ||= {}
-              styledContextProps[key] = contextValue[key]
+              styledContextProps[key] = val
             }
           }
-        }
-        // if set in props, update context
-        else {
-          overriddenContextProps ||= {}
-          overriddenContextProps[key] = propVal
+
+          // update context if needed (including value from defaultProps)
+          const finalVal = propVal ?? defaultProps?.[key]
+          if (finalVal !== undefined) {
+            overriddenContextProps ||= {}
+            overriddenContextProps[key] = finalVal
+          }
         }
       }
     }
@@ -520,8 +269,7 @@ export function createComponent<
     const componentName = props.componentName || staticConfig.componentName
 
     if (process.env.NODE_ENV === 'development' && isClient) {
-      // HOOK
-      useEffect(() => {
+      React.useEffect(() => {
         let overlay: HTMLSpanElement | null = null
 
         const debugVisualizerHandler = (show = false) => {
@@ -577,16 +325,9 @@ export function createComponent<
     ) {
       const timer = require('@tamagui/timer').timer()
       time = timer.start()
+      globalThis['time'] = time
     }
     if (process.env.NODE_ENV === 'development' && time) time`start (ignore)`
-
-    if (process.env.NODE_ENV === 'development' && time) time`did-finish-ssr`
-
-    // conditional but if ever true stays true
-    // [animated, inversed]
-    // HOOK
-
-    if (process.env.NODE_ENV === 'development' && time) time`stateref`
 
     /**
      * Component state for tracking animations, pseudos
@@ -607,7 +348,7 @@ export function createComponent<
       presenceState,
       setState,
       setStateShallow,
-      shouldAvoidClasses,
+      noClass,
       state,
       stateRef,
       supportsCSSVars,
@@ -615,14 +356,9 @@ export function createComponent<
       willBeAnimatedClient,
     } = useComponentState(props, componentContext, staticConfig, config!)
 
-    const shouldForcePseudo = !!propsIn.forceStyle
-    const noClassNames = shouldAvoidClasses || shouldForcePseudo
-
     if (process.env.NODE_ENV === 'development' && time) time`use-state`
 
     const hasTextAncestor = !!(isWeb && isText ? componentContext.inText : false)
-
-    if (process.env.NODE_ENV === 'development' && time) time`use-context`
 
     const isTaggable = !Component || typeof Component === 'string'
     const tagProp = props.tag
@@ -665,11 +401,9 @@ export function createComponent<
     if ('theme' in props) {
       themeStateProps.name = props.theme
     }
-
     if (typeof curStateRef.isListeningToTheme === 'boolean') {
-      themeStateProps.shouldUpdate = () => stateRef.current.isListeningToTheme
+      themeStateProps.needsUpdate = () => !!stateRef.current.isListeningToTheme
     }
-
     // on native we optimize theme changes if fastSchemeChange is enabled, otherwise deopt
     if (process.env.TAMAGUI_TARGET === 'native') {
       themeStateProps.deopt = willBeAnimated
@@ -683,14 +417,16 @@ export function createComponent<
           Component?.name ||
           '[Unnamed Component]'
         }`
+
         const type =
           (hasEnterStyle ? '(hasEnter)' : ' ') +
           (isAnimated ? '(animated)' : ' ') +
           (isReactNative ? '(rnw)' : ' ') +
-          (shouldAvoidClasses ? '(shouldAvoidClasses)' : ' ') +
+          (noClass ? '(noClass)' : ' ') +
           (state.press || state.pressIn ? '(PRESSED)' : ' ') +
           (state.hover ? '(HOVERED)' : ' ') +
           (state.focus ? '(FOCUSED)' : ' ') +
+          (state.focusWithin ? '(WITHIN FOCUSED)' : ' ') +
           (presenceState?.isPresent === false ? '(EXIT)' : '')
 
         const dataIs = propsIn['data-is'] || ''
@@ -701,7 +437,7 @@ export function createComponent<
         )
 
         if (isServer) {
-          log({ noClassNames, isAnimated, shouldAvoidClasses, isWeb, supportsCSSVars })
+          log({ noClass, isAnimated, isWeb, supportsCSSVars })
         } else {
           // if strict mode or something messes with our nesting this fixes:
           console.groupEnd()
@@ -726,16 +462,14 @@ export function createComponent<
 
     if (process.env.NODE_ENV === 'development' && time) time`pre-theme-media`
 
-    // HOOK 10-13 (-1 if no animation, -1 if disableSSR, -1 if no context, -1 if production)
     const [themeState, theme] = useThemeWithState(themeStateProps)
+
+    if (process.env.NODE_ENV === 'development' && time) time`theme`
 
     elementType = Component || elementType
     const isStringElement = typeof elementType === 'string'
 
-    if (process.env.NODE_ENV === 'development' && time) time`theme`
-
-    // HOOK 14 (-1 if no animation, -1 if disableSSR, -1 if no context, -1 if production)
-    const mediaState = useMedia(stateRef, componentContext, debugProp)
+    const mediaState = useMedia(componentContext, debugProp)
 
     setDidGetVariableValue(false)
 
@@ -750,19 +484,23 @@ export function createComponent<
 
     const styleProps = {
       mediaState,
-      noClassNames,
+      noClass,
       resolveValues,
       isExiting,
       isAnimated,
       willBeAnimated,
+      styledContextProps,
     } as const
 
-    // HOOK 15 (-1 if no animation, -1 if disableSSR, -1 if no context, -1 if production)
+    const themeName = themeState?.state?.name || ''
+
+    if (process.env.NODE_ENV === 'development' && time) time`split-styles-prepare`
+
     const splitStyles = useSplitStyles(
       props,
       staticConfig,
       theme,
-      themeState?.state?.name || '',
+      themeName,
       state,
       styleProps,
       null,
@@ -771,13 +509,13 @@ export function createComponent<
       debugProp
     )
 
+    if (process.env.NODE_ENV === 'development' && time) time`split-styles`
+
     // hide strategy will set this opacity = 0 until measured
     if (props.group && props.untilMeasured === 'hide' && !curStateRef.hasMeasured) {
       splitStyles.style ||= {}
       splitStyles.style.opacity = 0
     }
-
-    if (process.env.NODE_ENV === 'development' && time) time`split-styles`
 
     curStateRef.isListeningToTheme = splitStyles.dynamicThemeAccess
 
@@ -787,19 +525,16 @@ export function createComponent<
     const shouldListenForMedia =
       didGetVariableValue() ||
       hasRuntimeMediaKeys ||
-      (noClassNames && splitStyles.hasMedia === true)
+      (noClass && splitStyles.hasMedia === true)
 
     const mediaListeningKeys = hasRuntimeMediaKeys
       ? (splitStyles.hasMedia as Record<string, boolean>)
       : null
-    if (process.env.NODE_ENV === 'development' && debugProp) {
+    if (process.env.NODE_ENV === 'development' && debugProp === 'verbose') {
       console.info(`useMedia() createComponent`, shouldListenForMedia, mediaListeningKeys)
     }
 
-    setMediaShouldUpdate(stateRef, {
-      enabled: shouldListenForMedia,
-      keys: mediaListeningKeys,
-    })
+    setMediaShouldUpdate(stateRef, shouldListenForMedia, mediaListeningKeys)
 
     const {
       viewProps: viewPropsIn,
@@ -849,7 +584,7 @@ export function createComponent<
       viewProps.theme = _themeProp
     }
 
-    if (elementType['acceptTagProp']) {
+    if (tagProp && elementType['acceptTagProp']) {
       viewProps.tag = tagProp
     }
 
@@ -860,7 +595,6 @@ export function createComponent<
       (supportsCSSVars ? willBeAnimatedClient : willBeAnimated) && useAnimations && !isHOC
 
     if (shouldUseAnimation) {
-      // HOOK 16... (depends on driver) (-1 if no animation, -1 if disableSSR, -1 if no context, -1 if production)
       const animations = useAnimations({
         props: propsWithAnimation,
         // if hydrating, send empty style
@@ -878,7 +612,7 @@ export function createComponent<
         animationStyles = animations.style
         viewProps.style = animationStyles
         if (animations.className) {
-          viewProps.className = `${viewProps.className || ''} ${animations.className}`
+          viewProps.className = `${state.unmounted === 'should-enter' ? 't_unmounted ' : ''}${viewProps.className || ''} ${animations.className}`
         }
       }
 
@@ -911,7 +645,6 @@ export function createComponent<
       )
     }
 
-    // HOOKS (0-4 more):
     viewProps =
       hooks.usePropsTransform?.(
         elementType,
@@ -920,7 +653,6 @@ export function createComponent<
         curStateRef.willHydrate
       ) || nonTamaguiProps
 
-    // HOOK (1 more):
     if (!curStateRef.composedRef) {
       curStateRef.composedRef = composeRefs<TamaguiElement>(
         (x) => (stateRef.current.host = x as TamaguiElement),
@@ -933,11 +665,12 @@ export function createComponent<
 
     if (process.env.NODE_ENV === 'development') {
       if (!isReactNative && !isText && isWeb && !isHOC) {
-        Children.toArray(props.children).forEach((item) => {
+        React.Children.toArray(props.children).forEach((item) => {
           // allow newlines because why not its annoying with mdx
           if (typeof item === 'string' && item !== '\n') {
             console.error(
-              `Unexpected text node: ${item}. A text node cannot be a child of a <View>.`
+              `Unexpected text node: ${item}. A text node cannot be a child of a <${staticConfig.componentName || propsIn.tag || 'View'}>.`,
+              props
             )
           }
         })
@@ -956,18 +689,32 @@ export function createComponent<
 
     if (process.env.NODE_ENV === 'development' && isWeb) {
       useIsomorphicLayoutEffect(() => {
-        if (debugProp) {
-          console.groupCollapsed(`Rendered style >`)
-          console.warn(getComputedStyle(stateRef.current.host! as any))
+        if (debugProp === 'verbose') {
+          function cssStyleDeclarationToObject(style: CSSStyleDeclaration) {
+            const styleObject: Record<string, any> = {}
+            for (let i = 0; i < style.length; i++) {
+              let prop = style[i]
+              styleObject[prop] = style.getPropertyValue(prop)
+            }
+            return styleObject
+          }
+          const computed = cssStyleDeclarationToObject(
+            getComputedStyle(stateRef.current.host! as any)
+          )
+          console.groupCollapsed(`Rendered > (opacity: ${computed.opacity})`)
+          console.warn(stateRef.current.host)
+          console.warn(computed)
           console.groupEnd()
         }
       })
     }
 
-    useEffect(() => {
+    React.useEffect(() => {
       if (disabled) {
         return
       }
+
+      let tm
 
       if (state.unmounted === true && hasEnterStyle) {
         setStateShallow({ unmounted: 'should-enter' })
@@ -975,8 +722,13 @@ export function createComponent<
       }
 
       if (state.unmounted) {
-        setStateShallow({ unmounted: false })
-        return
+        // this setTimeout fixes moti and css driver enter animations
+        // not sure why
+        tm = setTimeout(() => {
+          setStateShallow({ unmounted: false })
+        })
+
+        return () => clearTimeout(tm)
       }
 
       const dispose = subscribeToContextGroup({
@@ -989,6 +741,7 @@ export function createComponent<
       })
 
       return () => {
+        clearTimeout(tm)
         dispose?.()
         componentSetStates.delete(setState)
       }
@@ -1001,16 +754,16 @@ export function createComponent<
 
     // if its a group its gotta listen for pseudos to emit them to children
 
-    const runtimePressStyle = !disabled && noClassNames && pseudos?.pressStyle
-    const runtimeFocusStyle = !disabled && noClassNames && pseudos?.focusStyle
-    const runtimeFocusVisibleStyle =
-      !disabled && noClassNames && pseudos?.focusVisibleStyle
+    const runtimePressStyle = !disabled && noClass && pseudos?.pressStyle
+    const runtimeFocusStyle = !disabled && noClass && pseudos?.focusStyle
+    const runtimeFocusVisibleStyle = !disabled && noClass && pseudos?.focusVisibleStyle
     const attachFocus = Boolean(
       runtimePressStyle ||
         runtimeFocusStyle ||
         runtimeFocusVisibleStyle ||
         onFocus ||
-        onBlur
+        onBlur ||
+        !!componentContext.setParentFocusState
     )
     const attachPress = Boolean(
       groupName ||
@@ -1024,7 +777,7 @@ export function createComponent<
         onClick ||
         pseudos?.focusVisibleStyle
     )
-    const runtimeHoverStyle = !disabled && noClassNames && pseudos?.hoverStyle
+    const runtimeHoverStyle = !disabled && noClass && pseudos?.hoverStyle
     const needsHoverState = Boolean(
       groupName || runtimeHoverStyle || onHoverIn || onHoverOut
     )
@@ -1060,6 +813,7 @@ export function createComponent<
         attachHover,
         shouldAttach,
         needsHoverState,
+        pseudos,
       })
     }
 
@@ -1139,6 +893,9 @@ export function createComponent<
             }),
           ...(attachFocus && {
             onFocus: (e) => {
+              if (componentContext.setParentFocusState) {
+                componentContext.setParentFocusState({ focusWithin: true })
+              }
               if (pseudos?.focusVisibleStyle) {
                 setTimeout(() => {
                   setStateShallow({
@@ -1155,6 +912,9 @@ export function createComponent<
               onFocus?.(e)
             },
             onBlur: (e) => {
+              if (componentContext.setParentFocusState) {
+                componentContext.setParentFocusState({ focusWithin: false })
+              }
               setStateShallow({
                 focus: false,
                 focusVisible: false,
@@ -1236,19 +996,15 @@ export function createComponent<
 
     let useChildrenResult: any
     if (hooks.useChildren) {
-      useChildrenResult = hooks.useChildren(
-        elementType,
-        content,
-        viewProps,
-        events,
-        staticConfig
-      )
+      useChildrenResult = hooks.useChildren(elementType, content, viewProps)
     }
+
+    if (process.env.NODE_ENV === 'development' && time) time`use-children`
 
     if (useChildrenResult) {
       content = useChildrenResult
     } else {
-      content = createElement(elementType, viewProps, content)
+      content = React.createElement(elementType, viewProps, content)
     }
 
     // needs to reset the presence state for nested children
@@ -1267,7 +1023,7 @@ export function createComponent<
 
     // must override context so siblings don't clobber initial state
     const groupState = curStateRef.group
-    const subGroupContext = useMemo(() => {
+    const subGroupContext = React.useMemo(() => {
       if (!groupState || !groupName) return
       groupState.listeners.clear()
       // change reference so context value updates
@@ -1291,9 +1047,13 @@ export function createComponent<
       } satisfies ComponentContextI['groups']
     }, [groupName])
 
-    if (groupName && subGroupContext) {
+    if ((groupName && subGroupContext) || propsIn.focusWithinStyle) {
       content = (
-        <ComponentContext.Provider {...componentContext} groups={subGroupContext}>
+        <ComponentContext.Provider
+          {...componentContext}
+          groups={subGroupContext}
+          setParentFocusState={setStateShallow}
+        >
           {content}
         </ComponentContext.Provider>
       )
@@ -1329,7 +1089,7 @@ export function createComponent<
       }
     }
 
-    // ensure we override new context with syle resolved values
+    // ensure we override new context with style resolved values
     if (staticConfig.context) {
       const contextProps = staticConfig.context.props
       for (const key in contextProps) {
@@ -1350,32 +1110,9 @@ export function createComponent<
     }
 
     // add in <style> tags inline
-    if (process.env.TAMAGUI_REACT_19 && process.env.TAMAGUI_TARGET !== 'native') {
-      const { rulesToInsert } = splitStyles
-      const keys = Object.keys(splitStyles.rulesToInsert)
-      if (keys.length) {
-        content = (
-          <>
-            {content}
-            {/* lets see if we can put a single style tag per rule for optimal de-duping */}
-            {keys.map((key) => {
-              const styleObject = rulesToInsert[key]
-              const identifier = styleObject[StyleObjectIdentifier]
-              return (
-                <style
-                  key={identifier}
-                  // @ts-ignore
-                  href={`t_${identifier}`}
-                  // @ts-ignore
-                  precedence="default"
-                >
-                  {styleObject[StyleObjectRules].join('\n')}
-                </style>
-              )
-            })}
-          </>
-        )
-      }
+    const { rulesToInsert } = splitStyles
+    if (process.env.TAMAGUI_TARGET === 'web' && process.env.TAMAGUI_REACT_19) {
+      content = wrapStyleTags(Object.values(rulesToInsert), content)
     }
 
     if (process.env.NODE_ENV === 'development') {
@@ -1398,8 +1135,9 @@ export function createComponent<
             log('viewProps', viewProps)
             log('children', content)
             if (typeof window !== 'undefined') {
-              log('props in', propsIn, 'mapped to', props, 'in order', Object.keys(props))
               log({
+                propsIn,
+                props,
                 animationStyles,
                 classNames,
                 content,
@@ -1412,8 +1150,7 @@ export function createComponent<
                 mediaListeningKeys,
                 pseudos,
                 shouldAttach,
-                shouldAvoidClasses,
-                shouldForcePseudo,
+                noClass,
                 shouldListenForMedia,
                 splitStyles,
                 splitStylesStyle,
@@ -1421,7 +1158,6 @@ export function createComponent<
                 stateRef,
                 staticConfig,
                 styleProps,
-                tamaguiConfig,
                 themeState,
                 viewProps,
                 willBeAnimated,
@@ -1472,7 +1208,7 @@ export function createComponent<
   let res: ComponentType = component as any
 
   if (process.env.TAMAGUI_FORCE_MEMO || staticConfig.memo) {
-    res = memo(res) as any
+    res = React.memo(res) as any
   }
 
   res.staticConfig = staticConfig
@@ -1496,14 +1232,16 @@ export function createComponent<
   function styleable(Component: any, options?: StyleableOptions) {
     const isForwardedRefAlready = Component.render?.length === 2
 
-    let out = isForwardedRefAlready ? (Component as any) : forwardRef(Component as any)
+    let out = isForwardedRefAlready
+      ? (Component as any)
+      : React.forwardRef(Component as any)
 
     const extendedConfig = extendStyledConfig(options?.staticConfig)
 
     out = options?.disableTheme ? out : (themeable(out, extendedConfig) as any)
 
     if (process.env.TAMAGUI_MEMOIZE_STYLEABLE) {
-      out = memo(out)
+      out = React.memo(out)
     }
 
     out.staticConfig = extendedConfig
@@ -1518,9 +1256,7 @@ export function createComponent<
 }
 
 type EventKeys = keyof (TamaguiComponentEvents & WebOnlyPressEvents)
-type EventLikeObject = {
-  [key in EventKeys]?: any
-}
+type EventLikeObject = { [key in EventKeys]?: any }
 
 function getWebEvents<E extends EventLikeObject>(events: E, webStyle = true) {
   return {
@@ -1620,7 +1356,9 @@ export function spacedChildren(props: SpacedChildrenProps) {
     return children
   }
 
-  const childrenList = areChildrenArray ? (children as any[]) : Children.toArray(children)
+  const childrenList = areChildrenArray
+    ? (children as any[])
+    : React.Children.toArray(children)
 
   const len = childrenList.length
   if (len <= 1 && !isZStack && !childrenList[0]?.['type']?.['shouldForwardSpace']) {
@@ -1649,9 +1387,9 @@ export function spacedChildren(props: SpacedChildrenProps) {
       final.push(child)
     } else {
       final.push(
-        <Fragment key={`${index}0t`}>
+        <React.Fragment key={`${index}0t`}>
           {isZStack ? <AbsoluteFill>{child}</AbsoluteFill> : child}
-        </Fragment>
+        </React.Fragment>
       )
     }
 
@@ -1674,7 +1412,7 @@ export function spacedChildren(props: SpacedChildrenProps) {
             })
           )
         }
-        final.push(<Fragment key={`${index}03t`}>{separator}</Fragment>)
+        final.push(<React.Fragment key={`${index}03t`}>{separator}</React.Fragment>)
         if (hasSpace) {
           final.push(
             createSpacer({
@@ -1740,75 +1478,5 @@ const AbsoluteFill: any = createComponent({
   },
 })
 
-function hasAnimatedStyleValue(style: Object) {
-  return Object.keys(style).some((k) => {
-    const val = style[k]
-    return val && typeof val === 'object' && '_animation' in val
-  })
-}
-
 const fromPx = (val?: number | string) =>
   typeof val !== 'string' ? val : +val.replace('px', '')
-
-export const isDisabled = (props: any) => {
-  return (
-    props.disabled ||
-    props.accessibilityState?.disabled ||
-    props['aria-disabled'] ||
-    props.accessibilityDisabled ||
-    false
-  )
-}
-
-export const subscribeToContextGroup = ({
-  disabled = false,
-  setStateShallow,
-  pseudoGroups,
-  mediaGroups,
-  componentContext,
-  state,
-}: {
-  disabled?: boolean
-  setStateShallow: (next?: Partial<TamaguiComponentState> | undefined) => void
-  pseudoGroups?: Set<string>
-  mediaGroups?: Set<string>
-  componentContext: ComponentContextI
-  state: TamaguiComponentState
-}) => {
-  // parent group pseudo listening
-  if (pseudoGroups || mediaGroups) {
-    const current = {
-      pseudo: {},
-      media: {},
-    } satisfies GroupState
-
-    if (process.env.NODE_ENV === 'development' && !componentContext.groups) {
-      console.debug(`No context group found`)
-    }
-
-    return componentContext.groups?.subscribe((name, { layout, pseudo }) => {
-      if (pseudo && pseudoGroups?.has(String(name))) {
-        // we emit a partial so merge it + change reference so mergeIfNotShallowEqual runs
-        Object.assign(current.pseudo, pseudo)
-        persist()
-      } else if (layout && mediaGroups) {
-        const mediaState = getMediaState(mediaGroups, layout)
-        const next = mergeIfNotShallowEqual(current.media, mediaState)
-        if (next !== current.media) {
-          Object.assign(current.media, next)
-          persist()
-        }
-      }
-      function persist() {
-        // force it to be referentially different so it always updates
-        const group = {
-          ...state.group,
-          [name]: current,
-        }
-        setStateShallow({
-          group,
-        })
-      }
-    })
-  }
-}

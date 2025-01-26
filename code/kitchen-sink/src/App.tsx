@@ -1,15 +1,11 @@
 import '@tamagui/core/reset.css'
 
 import * as Demos from '@tamagui/demos'
-import { useState } from 'react'
+import React from 'react'
 import { Separator, Theme, XStack, YStack } from 'tamagui'
-
 import { Provider } from './provider'
 import { Sandbox } from './Sandbox'
 import * as TestCases from './usecases'
-
-// useful for debugging why things render:
-// import './wdyr'
 
 if (typeof require !== 'undefined') {
   globalThis['React'] = require('react') // webpack
@@ -19,6 +15,7 @@ export default function App() {
   const kitchenSink = new URLSearchParams(window.location.search).get('kitchen')
   const demoComponentName = new URLSearchParams(window.location.search).get('demo')
   const useCaseComponentName = new URLSearchParams(window.location.search).get('test')
+
   const Component = kitchenSink
     ? // solito breaking
       () => null //require('../kitchen-sink/src/features/home/screen').HomeScreen
@@ -41,8 +38,10 @@ export default function App() {
 
 const SandboxFrame = (props: { children: any; centered?: boolean }) => {
   const params = new URLSearchParams(window.location.search)
-  const [theme, setTheme] = useState(params.get('theme') === 'dark' ? 'dark' : 'light')
-  const [screenshot] = useState(params.has('screenshot'))
+  const [theme, setTheme] = React.useState(
+    params.get('theme') === 'dark' ? 'dark' : 'light'
+  )
+  const [screenshot] = React.useState(params.has('screenshot'))
   const showThemeSwitch = !screenshot
   const splitView = params.has('splitView')
   const centered = props.centered ?? params.has('centered')

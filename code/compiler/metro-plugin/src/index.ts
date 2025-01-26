@@ -3,15 +3,12 @@ import {
   loadTamaguiBuildConfigSync,
   type TamaguiOptions,
 } from '@tamagui/static'
-import {
-  withCssInterop,
-  type ComposableIntermediateConfigT,
-} from 'react-native-css-interop/metro'
+import type { IntermediateConfigT } from 'metro-config'
 
 export function withTamagui(
-  metroConfig: ComposableIntermediateConfigT,
+  metroConfig: Partial<IntermediateConfigT>,
   optionsIn?: TamaguiOptions & {
-    disableCSSInterop?: boolean
+    enableCSSInterop?: boolean
   }
 ) {
   const options = {
@@ -27,24 +24,20 @@ export function withTamagui(
     void extractor.loadTamagui(options)
   }
 
-  if (!options.disableCSSInterop) {
-    metroConfig = withCssInterop(metroConfig, {
-      ignorePropertyWarningRegex: ['^--'],
-      // grouping: ['^group(/.*)?'],
-    })
-  } else {
-    // done in css interop
-    metroConfig.resolver = {
-      ...metroConfig.resolver,
-      sourceExts: [...metroConfig.resolver.sourceExts, 'css'],
-    }
+  // done in css interop
+  metroConfig.resolver = {
+    ...(metroConfig.resolver as any),
+    sourceExts: [...(metroConfig.resolver?.sourceExts || []), 'css'],
   }
 
   const ogTransformPath = metroConfig.transformerPath
   metroConfig.transformerPath = require.resolve('./transformer')
   metroConfig.transformer = {
     ...metroConfig.transformer,
-    ogTransformPath,
+    ...(ogTransformPath && {
+      ogTransformPath,
+    }),
+    // @ts-ignore
     tamagui: {
       ...options,
       disableInitialBuild: true,

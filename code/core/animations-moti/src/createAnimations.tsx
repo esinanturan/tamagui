@@ -1,8 +1,19 @@
 import { PresenceContext, ResetPresence, usePresence } from '@tamagui/use-presence'
-import type { AnimationDriver, UniversalAnimatedNumber } from '@tamagui/web'
+import {
+  getSplitStyles,
+  hooks,
+  isWeb,
+  Text,
+  useComposedRefs,
+  useThemeWithState,
+  View,
+  type AnimationDriver,
+  type UniversalAnimatedNumber,
+} from '@tamagui/web'
 import type { TransitionConfig } from 'moti'
-import { useMotify } from 'moti'
-import { useContext, useMemo, type CSSProperties } from 'react'
+import { useMotify } from 'moti/author'
+import type { CSSProperties } from 'react'
+import React, { forwardRef, useRef } from 'react'
 import type { TextStyle } from 'react-native'
 import type { SharedValue } from 'react-native-reanimated'
 import Animated, {
@@ -18,31 +29,64 @@ import Animated, {
 
 type ReanimatedAnimatedNumber = SharedValue<number>
 
-// function createTamaguiAnimatedComponent(tag = 'div') {
-//   const Component = Animated.createAnimatedComponent(
-//     forwardRef(({ forwardedRef, style, ...props }: any, ref) => {
-//       const composedRefs = useComposedRefs(forwardedRef, ref)
-//       const Element = props.tag || tag
+// this is our own custom reanimated animated component so we can allow data- attributes, className etc
+// this should ultimately be merged with react-native-web-lite
 
-//       // TODO this block should be exported by web as styleToWebStyle()
-//       const webStyle = style
-//       styleToCSS(style)
-//       if (Array.isArray(webStyle.transform)) {
-//         style.transform = transformsToString(style.transform)
-//       }
-//       for (const key in style) {
-//         style[key] = normalizeValueWithProperty(style[key], key)
-//       }
+function createTamaguiAnimatedComponent(defaultTag = 'div') {
+  const isText = defaultTag === 'span'
 
-//       return <Element {...props} style={style} ref={composedRefs} />
-//     })
-//   )
-//   Component['acceptTagProp'] = true
-//   return Component
-// }
+  const Component = Animated.createAnimatedComponent(
+    forwardRef((propsIn: any, ref) => {
+      const { forwardedRef, animation, tag = defaultTag, ...propsRest } = propsIn
+      const hostRef = useRef()
+      const composedRefs = useComposedRefs(forwardedRef, ref, hostRef)
+      const stateRef = useRef<any>()
+      if (!stateRef.current) {
+        stateRef.current = {
+          get host() {
+            return hostRef.current
+          },
+        }
+      }
 
-// const AnimatedView = createTamaguiAnimatedComponent('div')
-// const AnimatedText = createTamaguiAnimatedComponent('span')
+      const [{ state }] = useThemeWithState({})
+
+      // get styles but only inline style
+      const result = getSplitStyles(
+        propsRest,
+        isText ? Text.staticConfig : View.staticConfig,
+        state?.theme!,
+        state?.name!,
+        {
+          unmounted: false,
+        } as any,
+        {
+          isAnimated: false,
+          noClass: true,
+        }
+      )
+
+      const props = result.viewProps
+      const Element = tag
+      const transformedProps = hooks.usePropsTransform?.(tag, props, stateRef, false)
+
+      return <Element {...transformedProps} ref={composedRefs} />
+    })
+  )
+  Component['acceptTagProp'] = true
+  return Component
+}
+
+const AnimatedView = createTamaguiAnimatedComponent('div')
+const AnimatedText = createTamaguiAnimatedComponent('span')
+
+// const AnimatedView = styled(View, {
+//   disableClassName: true,
+// })
+
+// const AnimatedText = styled(Text, {
+//   disableClassName: true,
+// })
 
 const onlyAnimateKeys: { [key in keyof TextStyle | keyof CSSProperties]?: boolean } = {
   transform: true,
@@ -69,16 +113,20 @@ const onlyAnimateKeys: { [key in keyof TextStyle | keyof CSSProperties]?: boolea
   right: true,
   top: true,
   bottom: true,
+  fontSize: true,
+  fontWeight: true,
+  lineHeight: true,
+  letterSpacing: true,
 }
 
 export function createAnimations<A extends Record<string, TransitionConfig>>(
   animations: A
 ): AnimationDriver<A> {
   return {
-    // View: isWeb ? AnimatedView : Animated.View,
-    // Text: isWeb ? AnimatedText : Animated.Text,
-    View: Animated.View,
-    Text: Animated.Text,
+    View: isWeb ? AnimatedView : Animated.View,
+    Text: isWeb ? AnimatedText : Animated.Text,
+    // View: Animated.View,
+    // Text: Animated.Text,
     isReactNative: true,
     animations,
     usePresence,
@@ -87,7 +135,7 @@ export function createAnimations<A extends Record<string, TransitionConfig>>(
     useAnimatedNumber(initial): UniversalAnimatedNumber<ReanimatedAnimatedNumber> {
       const sharedValue = useSharedValue(initial)
 
-      return useMemo(
+      return React.useMemo(
         () => ({
           getInstance() {
             'worklet'
@@ -207,13 +255,9 @@ export function createAnimations<A extends Record<string, TransitionConfig>>(
         dontAnimate = style
       }
 
-      // without this, the driver breaks on native
-      // stringifying -> parsing fixes that
-      const animateStr = JSON.stringify(animate)
-      const styles = useMemo(() => JSON.parse(animateStr), [animateStr])
-
+      const styles = animate
       const isExiting = Boolean(presence?.[1])
-      const presenceContext = useContext(PresenceContext)
+      const presenceContext = React.useContext(PresenceContext)
       const usePresenceValue = (presence || undefined) as any
 
       type UseMotiProps = Parameters<typeof useMotify>[0]
@@ -234,7 +278,7 @@ export function createAnimations<A extends Record<string, TransitionConfig>>(
             // performance - this seems to have (strangely) huge performance effect in uniswap
             // so instead of cloning up front, we clone only when we absolutely have to
             if (!hasClonedTransition) {
-              transition = Object.apply({}, transition)
+              transition = Object.assign({}, transition)
               hasClonedTransition = true
             }
 
@@ -258,9 +302,13 @@ export function createAnimations<A extends Record<string, TransitionConfig>>(
 
       const moti = useMotify(motiProps)
 
-      if (process.env.NODE_ENV === 'development' && props['debug']) {
+      if (
+        process.env.NODE_ENV === 'development' &&
+        props['debug'] &&
+        props['debug'] !== 'profile'
+      ) {
         console.info(`useMotify(`, JSON.stringify(motiProps, null, 2) + ')', {
-          animationProps,
+          'componentState.unmounted': componentState.unmounted,
           motiProps,
           moti,
           style: [dontAnimate, moti.style],

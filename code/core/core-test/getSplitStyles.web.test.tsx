@@ -9,7 +9,7 @@ import {
   Text,
   createTamagui,
   styled,
-} from '../core/src'
+} from '../web/src'
 import { simplifiedGetSplitStyles } from './utils'
 
 beforeAll(() => {
@@ -47,13 +47,15 @@ describe('getSplitStyles', () => {
   })
 
   test(`font props get the font family, regardless of the order`, () => {
+    const styles = simplifiedGetSplitStyles(Text, {
+      fontSize: '$1',
+    }).rulesToInsert
+
     expect(
-      Object.values(
-        simplifiedGetSplitStyles(Text, {
-          fontSize: '$1',
-        }).rulesToInsert
-      ).find((rule) => rule[StyleObjectProperty] === 'fontSize')?.[StyleObjectValue]
-    ).toEqual('var(--f-si-1)') // no family provided - this is expected
+      Object.values(styles).find((rule) => rule[StyleObjectProperty] === 'fontSize')?.[
+        StyleObjectValue
+      ]
+    ).toEqual('var(--f-size-1)') // no family provided - this is expected
 
     expect(
       Object.values(
@@ -62,7 +64,7 @@ describe('getSplitStyles', () => {
           fontFamily: '$body',
         }).rulesToInsert
       ).find((rule) => rule[StyleObjectProperty] === 'fontSize')?.[StyleObjectValue]
-    ).toEqual('var(--f-si-1)')
+    ).toEqual('var(--f-size-1)')
 
     expect(
       Object.values(
@@ -71,7 +73,7 @@ describe('getSplitStyles', () => {
           fontSize: '$1',
         }).rulesToInsert
       ).find((rule) => rule[StyleObjectProperty] === 'fontSize')?.[StyleObjectValue]
-    ).toEqual('var(--f-si-1)')
+    ).toEqual('var(--f-size-1)')
   })
 
   test(`font props get the font family from a variant, regardless of the order`, () => {
@@ -92,7 +94,7 @@ describe('getSplitStyles', () => {
           type: 'myValue',
         }).rulesToInsert
       ).find((rule) => rule[StyleObjectProperty] === 'fontSize')?.[StyleObjectValue]
-    ).toEqual('var(--f-si-1)')
+    ).toEqual('var(--f-size-1)')
 
     expect(
       Object.values(
@@ -101,18 +103,19 @@ describe('getSplitStyles', () => {
           fontSize: '$1',
         }).rulesToInsert
       ).find((rule) => rule[StyleObjectProperty] === 'fontSize')?.[StyleObjectValue]
-    ).toEqual('var(--f-si-1)')
+    ).toEqual('var(--f-size-1)')
   })
 
   test(`z-index resolves to respective tokens`, () => {
     const styles = simplifiedGetSplitStyles(Text, {
       zIndex: '$1',
     })
+
     expect(
       Object.values(styles.rulesToInsert)[0][StyleObjectProperty] === 'zIndex'
     ).toBeTruthy()
     expect(Object.values(styles.rulesToInsert)[0][StyleObjectValue]).toEqual(
-      'var(--zIndex-2)'
+      'var(--t-zIndex-1)'
     )
   })
 
@@ -136,10 +139,10 @@ describe('getSplitStyles', () => {
         color: 'red',
       },
     })
-    expect(
-      Object.values(styles.rulesToInsert)[0][StyleObjectRules][0]
-    ).toMatchInlineSnapshot(
-      '"@supports (contain: inline-size) {@container testy (max-width: 800px){:root:root .t_group_testy  ._col-_grouptesty-sm_red{color:red;}}}"'
+    const rule = Object.values(styles.rulesToInsert)[0][StyleObjectRules][0]
+
+    expect(rule).toMatchInlineSnapshot(
+      '"@supports (contain: inline-size) {@container testy (max-width: 800px){:root:root:root .t_group_testy  ._col-_grouptesty-sm_red{color:red;}}}"'
     )
   })
 
@@ -257,7 +260,7 @@ describe('getSplitStyles', () => {
   //     (rule) => rule[StyleObjectProperty] === 'fontSize'
   //   )
 
-  //   expect(fontSizeRule?.rules[0].includes('font-size:var(--f-si-1)')).toBeTruthy()
+  //   expect(fontSizeRule?.rules[0].includes('font-size:var(--f-size-1)')).toBeTruthy()
   // })
 
   // test(`prop "tabIndex" defaults to "0", overrides to "-1" when tag = button`, () => {

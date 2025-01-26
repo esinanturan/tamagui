@@ -1,4 +1,3 @@
-import { animations } from '@tamagui/config/v3'
 import { LogoIcon, useTint } from '@tamagui/logo'
 import { ArrowDown, Play } from '@tamagui/lucide-icons'
 import React, { memo, useEffect, useRef, useState } from 'react'
@@ -13,10 +12,10 @@ import {
   useControllableState,
   useEvent,
 } from 'tamagui'
-import { useIsIntersecting } from '~/hooks/useOnIntersecting'
-
 import { ContainerLarge } from '~/components/Containers'
 import { Link } from '~/components/Link'
+import { useIsIntersecting } from '~/hooks/useOnIntersecting'
+import { animations } from '../../../config/animations'
 import { CodeDemoPreParsed } from './CodeDemoPreParsed'
 import { HomeH2, HomeH3 } from './HomeHeaders'
 
@@ -209,7 +208,7 @@ export const ExampleAnimations = memo(() => {
             return (
               <ListItem
                 key={item.name}
-                theme={isActive ? 'active' : null}
+                theme={isActive ? 'accent' : null}
                 px="$4"
                 py="$2"
                 title={item.name}

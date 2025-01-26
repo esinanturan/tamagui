@@ -1,15 +1,16 @@
 // fork from https://github.com/seek-oss/vanilla-extract
 
 import type { TamaguiOptions } from '@tamagui/static'
-import * as StaticIn from '@tamagui/static'
 import path from 'node:path'
 import type { Plugin, ResolvedConfig, ViteDevServer } from 'vite'
 import { normalizePath, type Environment } from 'vite'
-
-// some sort of weird esm compat
-const Static = (StaticIn['default'] || StaticIn) as typeof StaticIn
-
-const styleUpdateEvent = (fileId: string) => `tamagui-style-update:${fileId}`
+import {
+  Static,
+  disableStatic,
+  extractor,
+  loadTamaguiBuildConfig,
+  tamaguiOptions,
+} from './loadTamagui'
 
 export function tamaguiExtractPlugin(optionsIn?: Partial<TamaguiOptions>): Plugin {
   if (optionsIn?.disable) {
@@ -18,14 +19,11 @@ export function tamaguiExtractPlugin(optionsIn?: Partial<TamaguiOptions>): Plugi
     }
   }
 
-  let extractor: ReturnType<typeof Static.createExtractor> | null = null
   const cssMap = new Map<string, string>()
 
   let config: ResolvedConfig
-  let tamaguiOptions: TamaguiOptions
   let server: ViteDevServer
-  let virtualExt: string
-  let disableStatic = false
+  const virtualExt = `.tamagui.css`
 
   const getAbsoluteVirtualFileId = (filePath: string) => {
     if (filePath.startsWith(config.root)) {
@@ -38,12 +36,38 @@ export function tamaguiExtractPlugin(optionsIn?: Partial<TamaguiOptions>): Plugi
     return environment?.name && environment.name !== 'client'
   }
 
+  function isVite6Native(environment?: Environment) {
+    return (
+      environment?.name && (environment.name === 'ios' || environment.name === 'android')
+    )
+  }
+
+  function invalidateModule(absoluteId: string) {
+    if (!server) return
+
+    const { moduleGraph } = server
+    const modules = moduleGraph.getModulesByFile(absoluteId)
+
+    if (modules) {
+      for (const module of modules) {
+        moduleGraph.invalidateModule(module)
+
+        // Vite uses this timestamp to add `?t=` query string automatically for HMR.
+        module.lastHMRTimestamp = module.lastInvalidationTimestamp || Date.now()
+      }
+    }
+  }
+
   return {
     name: 'tamagui-extract',
     enforce: 'pre',
 
     configureServer(_server) {
       server = _server
+    },
+
+    async buildStart() {
+      await loadTamaguiBuildConfig(optionsIn)
     },
 
     buildEnd() {
@@ -57,34 +81,20 @@ export function tamaguiExtractPlugin(optionsIn?: Partial<TamaguiOptions>): Plugi
     },
 
     async configResolved(resolvedConfig) {
-      if (extractor) {
-        return
-      }
       config = resolvedConfig
-      virtualExt = `.tamagui.css`
     },
 
     async resolveId(source) {
-      if (isVite6AndNotClient(this.environment)) {
-        // only optimize on client - server should produce identical styles anyway!
+      if (isVite6Native(this.environment)) {
         return
       }
 
-      // lazy load, vite for some reason runs plugins twice in some esm compat thing
-      if (!extractor) {
-        tamaguiOptions = Static.loadTamaguiBuildConfigSync({
-          ...optionsIn,
-          platform: 'web',
-        })
-        disableStatic = Boolean(tamaguiOptions.disable)
-        extractor = Static.createExtractor({
-          logger: config.logger,
-        })
-        await extractor!.loadTamagui({
-          components: ['tamagui'],
-          platform: 'web',
-          ...tamaguiOptions,
-        } satisfies TamaguiOptions)
+      if (
+        tamaguiOptions?.disableServerOptimization &&
+        isVite6AndNotClient(this.environment)
+      ) {
+        // only optimize on client - server should produce identical styles anyway!
+        return
       }
 
       const [validId, query] = source.split('?')
@@ -116,9 +126,18 @@ export function tamaguiExtractPlugin(optionsIn?: Partial<TamaguiOptions>): Plugi
      *
      */
 
-    load(id) {
-      if (disableStatic || isVite6AndNotClient(this.environment)) {
+    async load(id) {
+      if (disableStatic) {
         // only optimize on client - server should produce identical styles anyway!
+        return
+      }
+      if (isVite6Native(this.environment)) {
+        return
+      }
+      if (
+        tamaguiOptions?.disableServerOptimization &&
+        isVite6AndNotClient(this.environment)
+      ) {
         return
       }
       const [validId] = id.split('?')
@@ -126,8 +145,17 @@ export function tamaguiExtractPlugin(optionsIn?: Partial<TamaguiOptions>): Plugi
     },
 
     async transform(code, id, ssrParam) {
-      if (disableStatic || isVite6AndNotClient(this.environment)) {
+      if (disableStatic) {
         // only optimize on client - server should produce identical styles anyway!
+        return
+      }
+      if (isVite6Native(this.environment)) {
+        return
+      }
+      if (
+        tamaguiOptions?.disableServerOptimization &&
+        isVite6AndNotClient(this.environment)
+      ) {
         return
       }
 
@@ -137,7 +165,7 @@ export function tamaguiExtractPlugin(optionsIn?: Partial<TamaguiOptions>): Plugi
       }
 
       const firstCommentIndex = code.indexOf('// ')
-      const { shouldDisable, shouldPrintDebug } = Static.getPragmaOptions({
+      const { shouldDisable, shouldPrintDebug } = Static!.getPragmaOptions({
         source: firstCommentIndex >= 0 ? code.slice(firstCommentIndex) : '',
         path: validId,
       })
@@ -151,11 +179,11 @@ export function tamaguiExtractPlugin(optionsIn?: Partial<TamaguiOptions>): Plugi
         return
       }
 
-      const extracted = await Static.extractToClassNames({
+      const extracted = await Static!.extractToClassNames({
         extractor: extractor!,
         source: code,
         sourcePath: validId,
-        options: tamaguiOptions,
+        options: tamaguiOptions!,
         shouldPrintDebug,
       })
 
@@ -169,27 +197,10 @@ export function tamaguiExtractPlugin(optionsIn?: Partial<TamaguiOptions>): Plugi
       let source = extracted.js
 
       if (extracted.styles) {
-        if (
-          server &&
-          cssMap.has(absoluteId) &&
-          cssMap.get(absoluteId) !== extracted.styles
-        ) {
-          const { moduleGraph } = server
-          const [module] = Array.from(moduleGraph.getModulesByFile(absoluteId) || [])
+        this.addWatchFile(rootRelativeId)
 
-          if (module) {
-            moduleGraph.invalidateModule(module)
-
-            // Vite uses this timestamp to add `?t=` query string automatically for HMR.
-            module.lastHMRTimestamp =
-              (module as any).lastInvalidationTimestamp || Date.now()
-          }
-
-          server.ws.send({
-            type: 'custom',
-            event: styleUpdateEvent(absoluteId),
-            data: extracted.styles,
-          })
+        if (server && cssMap.has(absoluteId)) {
+          invalidateModule(rootRelativeId)
         }
 
         source = `${source}\nimport "${rootRelativeId}";`

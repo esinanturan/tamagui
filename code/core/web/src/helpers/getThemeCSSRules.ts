@@ -6,6 +6,10 @@ import { variableToString } from '../createVariable'
 import type { CreateTamaguiProps, ThemeParsed } from '../types'
 import { tokensValueToVariable } from './registerCSSVariable'
 import { getSetting } from '../config'
+import { sortString } from './sortString'
+
+const darkLight = ['dark', 'light']
+const lightDark = ['light', 'dark']
 
 export function getThemeCSSRules(props: {
   config: CreateTamaguiProps
@@ -74,7 +78,7 @@ export function getThemeCSSRules(props: {
         }
 
         const childSelector = `${CNP}${subName.replace(/^(dark|light)_/, '')}`
-        const order = isDark ? ['dark', 'light'] : ['light', 'dark']
+        const order = isDark ? darkLight : lightDark
         const [stronger, weaker] = order
         const numSelectors = Math.round(maxDepth * 1.5)
 
@@ -102,7 +106,8 @@ export function getThemeCSSRules(props: {
             childSelector === lastParentSelector ? '' : childSelector
 
           // for light/dark/light:
-          selectorsSet.add(`${parentSelectors.join(' ')} ${nextChildSelector}`.trim())
+          const parentSelectorString = parentSelectors.join(' ')
+          selectorsSet.add(`${parentSelectorString} ${nextChildSelector}`)
           // selectorsSet.add(
           //   `${parentSelectors.join(' ')} ${nextChildSelector}.is_inversed`.trim()
           // )
@@ -110,16 +115,17 @@ export function getThemeCSSRules(props: {
       }
     }
 
-    const selectors = [...selectorsSet].sort((a, b) => a.localeCompare(b))
+    const selectors = [...selectorsSet].sort(sortString)
 
     // only do our :root attach if it's not light/dark - not support sub themes on root saves a lot of effort/size
     // this isBaseTheme logic could probably be done more efficiently above
-    const selectorsString = selectors
-      .map((x) => {
-        const rootSep = isBaseTheme(x) && getSetting('themeClassNameOnRoot') ? '' : ' '
-        return `:root${rootSep}${x}`
-      })
-      .join(', ')
+    const selectorsString =
+      selectors
+        .map((x) => {
+          const rootSep = isBaseTheme(x) && getSetting('themeClassNameOnRoot') ? '' : ' '
+          return `:root${rootSep}${x}`
+        })
+        .join(', ') + `, .tm_xxt`
 
     const css = `${selectorsString} {${vars}}`
     cssRuleSets.push(css)
@@ -129,7 +135,6 @@ export function getThemeCSSRules(props: {
         ? `background:${variableToString(theme.background)};`
         : ''
       const fgString = theme.color ? `color:${variableToString(theme.color)}` : ''
-
       const bodyRules = `body{${bgString}${fgString}}`
       const isDark = themeName.startsWith('dark')
       const baseName = isDark ? 'dark' : 'light'

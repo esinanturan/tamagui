@@ -1,449 +1,157 @@
-// @ts-nocheck
-import { Alert, Badge, Spinner } from '@inkjs/ui'
+import React from 'react'
+import { Box, useApp, useInput, Text } from 'ink'
+import {
+  MemoryRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+  useParams,
+} from 'react-router-dom'
+
+import { AuthGuard } from '../app/AuthGuard.js'
+import type { ComponentSchema } from '../components.js'
+import type { AppContextType, FetchState, InstallState } from '../data/AppContext.js'
+import { AppContext } from '../data/AppContext.js'
+import { CodeAuthScreen } from '../screens/CodeAuthScreen.js'
+import { InstallConfirmScreen } from '../screens/InstallConfirmScreen.js'
+import { SearchScreen } from '../screens/SearchScreen.js'
 import Conf from 'conf'
-import { copy } from 'copy-paste'
-import Fuse from 'fuse.js'
-import { Box, Spacer, Text, useApp, useInput } from 'ink'
-import TextInput from 'ink-text-input'
-import open from 'open'
-import { createContext, useContext, useEffect, useState } from 'react'
-import { componentsList } from '../components.js'
-import { useGithubAuth } from '../hooks/useGithubAuth.js'
-import { useInstallComponent } from '../hooks/useInstallComponent.js'
 
-const tokenStore = new Conf({ projectName: 'bento-cli' })
+import { handleGlobalKeyPress } from '../app/handle-global-keypress.js'
 
-const handleKeypress = (key: string, modifier, appContext) => {
-  const {
-    selectedId,
-    setSelectedId,
-    setInstall,
-    results,
-    copyToClipboard,
-    setCopyToClipboard,
-  } = appContext
-
-  if (modifier.shift + key === 'l') {
-    tokenStore.clear()
-    return
-  }
-
-  if (key === 'c' && appContext.install.enterToOpenBrowser) {
-    setCopyToClipboard(true)
-    return
-  }
-
-  // after token addition on pressing esc go back to previous screen
-  if (modifier.escape && appContext.install.tokenIsInstalled) {
-    appContext.setInstall((prev) => ({
-      ...prev,
-      installingComponent: null,
-      tokenIsInstalled: false,
-    }))
-    return
-  }
-
-  if (
-    modifier.escape &&
-    appContext.install.installingComponent !== null &&
-    !appContext.install.installingComponent?.isOSS
-  ) {
-    appContext.setInstall((prev) => ({
-      ...prev,
-      installingComponent: null,
-      enterToOpenBrowser: false,
-    }))
-    return
-  }
-
-  if (modifier.escape) {
-    appContext.exit()
-    return
-  }
-
-  if (appContext.install.installingComponent && (modifier.upArrow || modifier.downArrow))
-    return
-
-  if (
-    modifier.return &&
-    !appContext.install.installingComponent?.isOSS &&
-    appContext.install.enterToOpenBrowser
-  ) {
-    open('https://github.com/login/device')
-    return
-  }
-
-  if (appContext.install.installingComponent?.isOSS) {
-    return
-  }
-
-  if (modifier.upArrow) {
-    selectedId > -1 && setSelectedId(selectedId - 1)
-    return
-  }
-
-  if (modifier.downArrow) {
-    selectedId < appContext.results.length - 1 && setSelectedId(selectedId + 1)
-    return
-  }
-
-  if (modifier.return) {
-    setInstall((prev) => ({
-      ...prev,
-      installingComponent: results[selectedId]?.item,
-    }))
-    return
-  }
+// Wrapper function for conditional logging
+export const debugLog = (...args: any[]) => {
+  // biome-ignore lint/suspicious/noConsoleLog: This is a debug logging function
+  if (process.env.DEBUG === 'true') console.log(...args)
 }
 
-// TODO type this properly!
-export const AppContext = createContext<any>({
-  tokenStore: {} as typeof tokenStore,
-  copyToClipboard: false,
-  setCopyToClipboard: () => {},
-  results: [],
-  setResults: () => {},
-  selectedId: -1,
-  setSelectedId: () => {},
-  input: '',
-  setInput: () => {},
-  setInstall: () => {},
-  setInstallcomponent: () => {},
-  install: null,
-})
+function BentoGet() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const tokenStore = new Conf({ projectName: 'bento-cli/v2' })
+  const [isLoggedIn, setIsLoggedIn] = React.useState(false)
+  const [searchResults, setSearchResults] = React.useState<
+    Array<{ item: ComponentSchema }>
+  >([])
+  const [selectedResultIndex, setSelectedResultIndex] = React.useState(-1)
+  const [searchInput, setSearchInput] = React.useState('')
+  const [confirmationPending, setConfirmationPending] = React.useState(true)
+  const [fetchState, setFetchState] = React.useState<FetchState>({
+    status: 'idle',
+    isLoading: false,
+    isSuccess: false,
+    isError: false,
+    data: null,
+    error: undefined,
+    statusCode: undefined,
+  })
+  const [installState, setInstallState] = React.useState<InstallState>({
+    installingComponent: null,
+    installedComponents: [],
+    shouldOpenBrowser: false,
+    isTokenInstalled: false,
+    componentToInstall: null,
+  })
+  const [isCopyingToClipboard, setCopyingToClipboard] = React.useState(false)
+  const { exit } = useApp()
 
-const SearchBar = () => {
-  const appContext = useContext(AppContext)
-  const search = (query) => {
-    const fuse = new Fuse(componentsList, {
-      keys: ['name', 'category', 'categorySection'],
-    })
-    return fuse.search(query)
-  }
-  const handleChange = (value) => {
-    if ((appContext.install as any).installingComponent?.isOSS) return
-    appContext.setInput(value)
-    const results = search(value)
-    appContext.setResults(results)
-    appContext.setSelectedId(-1)
-  }
-  return (
-    <Box marginX={1} justifyContent="space-between">
-      <Box>
-        <Text bold>Search: </Text>
-        <TextInput
-          value={appContext.input}
-          onChange={handleChange}
-          // @ts-ignore
-          marginRight={'auto'}
-        />
-      </Box>
-      <ResultsCounter />
-    </Box>
+  const [accessToken, setAccessToken] = React.useState<string | null>(null)
+
+  const appContextValues: AppContextType = React.useMemo(
+    () => ({
+      isCopyingToClipboard,
+      setCopyingToClipboard,
+      exitApp: exit,
+      searchResults,
+      setSearchResults,
+      selectedResultIndex,
+      setSelectedResultIndex,
+      searchInput,
+      setSearchInput,
+      setInstallState,
+      installState,
+      confirmationPending,
+      setConfirmationPending,
+      isLoggedIn,
+      setIsLoggedIn,
+      accessToken,
+      setAccessToken,
+      fetchState,
+      setFetchState,
+      tokenStore,
+    }),
+    [
+      isCopyingToClipboard,
+      searchResults,
+      selectedResultIndex,
+      searchInput,
+      installState,
+      confirmationPending,
+      accessToken,
+      fetchState,
+      tokenStore,
+    ]
   )
-}
 
-const ResultsContainer = () => {
-  const appContext = useContext(AppContext)
-  return (
-    <Box flexDirection="column" display={appContext.results.length ? 'flex' : 'none'}>
-      <Box flexDirection="column" borderStyle="round" paddingX={1} gap={1}>
-        {appContext.results.slice(0, 5).map((result, i) => (
-          <ResultCard
-            result={result}
-            key={result.item.fileName}
-            isSelected={appContext.selectedId === i}
-          />
-        ))}
-      </Box>
-      <Footer />
-    </Box>
+  useInput((input, key) =>
+    handleGlobalKeyPress(input, key, appContextValues, navigate, location)
   )
-}
 
-const Footer = () => {
-  return (
-    <Box flexDirection="row" justifyContent="flex-end" marginRight={1}>
-      <Text>
-        <Text underline>ESC</Text> to exit
-      </Text>
-    </Box>
-  )
-}
-
-const InstalledBadge = ({ item }) => {
-  const appContext = useContext(AppContext)
-  const componentIsInstalled = appContext.install?.installedComponents
-    ?.map((component) => component.fileName)
-    .includes(item.fileName)
-
-  if (!appContext.install?.installedComponents) return null
-  return (
-    componentIsInstalled && (
-      <Box marginLeft={1}>
-        <Badge color="green">Installed</Badge>
-      </Box>
-    )
-  )
-}
-
-const ResultCard = ({ result, isSelected }) => {
-  const appContext = useContext(AppContext)
-  return (
-    <Box flexDirection="row" minWidth={'100%'}>
-      <Box flexDirection="row">
-        <Text textWrap="nowrap" bold style={{ textWrap: 'nowrap' }} color="gray">
-          {(() => {
-            switch (true) {
-              case appContext.install.installingComponent && isSelected:
-                return ''
-              case appContext.install.installingComponent:
-                return '  '
-              case isSelected:
-                return '❯ '
-              default:
-                return '  '
-            }
-          })()}
-        </Text>
-        {appContext.install.installingComponent && isSelected && <InstallComponent />}
-        <Text bold style={{ textWrap: 'nowrap' }} color={isSelected ? 'white' : 'black'}>
-          {result.item?.name}
-        </Text>
-        <InstalledBadge item={result.item} />
-      </Box>
-      <Spacer />
-      <TypeOfComponentAccess item={result.item} />
-      <CategorySectionBadge item={result.item} />
-    </Box>
-  )
-}
-
-const CategorySectionBadge = ({ item }) => {
-  const appContext = useContext(AppContext)
-  return (
-    <Box marginLeft={1} gap={1}>
-      <Text color={'black'} backgroundColor={'white'}>
-        {' '}
-        {item?.category.charAt(0).toUpperCase() + item?.category.slice(1)} {'>'}{' '}
-        {item?.categorySection.charAt(0).toUpperCase() +
-          item?.categorySection.slice(1)}{' '}
-      </Text>
-    </Box>
-  )
-}
-const TypeOfComponentAccess = ({ item }) => {
-  const appContext = useContext(AppContext)
-  return (
-    <Box marginLeft={1} gap={1} display={item?.isOSS ? 'flex' : 'none'}>
-      <Text color={'black'} backgroundColor={'gray'}>
-        OSS
-      </Text>
-    </Box>
-  )
-}
-
-const ResultsCounter = () => {
-  const appContext = useContext(AppContext)
-  return (
-    <Box>
-      {!!appContext.results.length && (
-        <Text bold color="gray">
-          {appContext.results.length} result
-          {appContext.results.length > 1 ? 's' : ''}
-        </Text>
-      )}
-    </Box>
-  )
-}
-
-const InstallComponent = () => {
-  const appContext = useContext(AppContext)
-  return (
-    <Box>
-      {appContext.install.installingComponent ? (
-        <Box>
-          <Spinner label="Installing " />
-        </Box>
-      ) : (
-        <Box marginRight={2} />
-      )}
-    </Box>
-  )
-}
-
-const UsageBanner = () => {
-  return (
-    <Alert variant="info">
-      Search any component by category, section or name. <Text underline>Up</Text> and{' '}
-      <Text underline>down</Text> arrows to select. <Text underline>Enter</Text> to
-      install.
-    </Alert>
-  )
-}
-
-const CodeAuthScreen = () => {
-  const appContext = useContext(AppContext)
-  const { data, isLoading } = useGithubAuth()
-
-  useEffect(() => {
-    appContext.setInstall((prev) => ({
-      ...prev,
-      enterToOpenBrowser: true,
-    }))
-    return () => {
-      appContext.setCopyToClipboard(false)
+  React.useEffect(() => {
+    // On initial boot set the token if we have one
+    const token = tokenStore.get('accessToken')
+    if (token) {
+      setAccessToken(token as string)
+      setIsLoggedIn(true)
+      debugLog('Token found, setting isLoggedIn to true')
+      debugLog({ token })
+    } else {
+      setIsLoggedIn(false)
     }
   }, [])
 
-  appContext.tokenStore.onDidChange('token', (newvalue, oldvalue) => {
-    appContext.setInstall((prev) => ({
-      ...prev,
-      tokenIsInstalled: true,
-    }))
-  })
-
-  useEffect(() => {
-    if (appContext.copyToClipboard) {
-      copy(data?.user_code)
-      console.warn(`Copied to clipboard`)
-    }
-  }, [appContext.copyToClipboard])
-
   return (
-    <Box flexDirection="column" display="flex">
-      <Alert variant="info">
-        Press <Text underline>Enter</Text> to open browser window and authenticate to your
-        Github account with the following auth code.
-      </Alert>
-      <Box justifyContent="space-between" paddingRight={1}>
-        <Text>
-          {' < '}
-          <Text underline>ESC</Text> to go Back
-        </Text>
-
-        {appContext.copyToClipboard ? (
-          <Text color="green">copied!</Text>
-        ) : (
-          <Text>
-            Hit <Text underline>c</Text> to copy to clipboard
+    <AppContext.Provider value={appContextValues}>
+      <AuthGuard>
+        <Routes>
+          <Route path="/" element={<Navigate to="/search" replace />} />
+          <Route path="/search" element={<SearchScreen />} />
+          <Route path="/auth/:fileName" element={<CodeAuthScreen />} />
+          <Route
+            path="/install-confirm/:fileName"
+            element={<ProtectedRoute component={InstallConfirmScreen} />}
+          />
+        </Routes>
+      </AuthGuard>
+      {process.env.DEBUG && (
+        <Box borderStyle="round" borderColor="" padding={1}>
+          <Text>Current Route: {location.pathname}</Text>
+          <Text color={'magenta'}> | </Text>
+          <Text color={isLoggedIn ? 'green' : 'red'}>
+            {isLoggedIn ? 'Logged In' : 'Logged Out'}
           </Text>
-        )}
-      </Box>
-      <Box flexDirection="row" borderStyle="round" paddingY={1} justifyContent="center">
-        {appContext.install.tokenIsInstalled ? (
-          <Box paddingY={1}>
-            <Text color="green">
-              Github Authentication Successful. Press <Text underline>ESC</Text> to go
-              back ✔︎
-            </Text>
-          </Box>
-        ) : isLoading ? (
-          <Box paddingY={1}>
-            <Spinner label="Loading..." />
-          </Box>
-        ) : (
-          data?.user_code?.split('')?.map((item, key) => (
-            <Box
-              key={key}
-              flexDirection="column"
-              {...(item !== '-' && { borderStyle: 'round' })}
-              paddingX={1}
-              gap={1}
-              width={item !== '-' ? 5 : 3}
-              height={3}
-              alignItems="center"
-              justifyContent="center"
-            >
-              <Text width={5}>{item}</Text>
-            </Box>
-          ))
-        )}
-      </Box>
-    </Box>
-  )
-}
-
-export default function Search() {
-  const [results, setResults] = useState([])
-  const [selectedId, setSelectedId] = useState(-1)
-  const [input, setInput] = useState('')
-  const [install, setInstall] = useState({
-    installingComponent: null,
-    installedComponents: [],
-    enterToOpenBrowser: false,
-    tokenIsInstalled: false,
-  })
-  const [copyToClipboard, setCopyToClipboard] = useState(false)
-  const { exit } = useApp()
-  const { access_token } = tokenStore?.get('token') ?? {}
-  // tokenStore.delete("token");
-
-  useInput((input, key) =>
-    handleKeypress(input, key, {
-      tokenStore,
-      copyToClipboard,
-      setCopyToClipboard,
-      exit,
-      results,
-      setResults,
-      selectedId,
-      setSelectedId,
-      input,
-      setInput,
-      setInstall,
-      install,
-    })
-  )
-
-  return (
-    <AppContext.Provider
-      value={{
-        tokenStore,
-        copyToClipboard,
-        setCopyToClipboard,
-        results,
-        setResults,
-        selectedId,
-        setSelectedId,
-        input,
-        setInput,
-        install,
-        setInstall,
-      }}
-    >
-      <Provider>
-        <Box flexDirection="column">
-          <Box flexDirection="column">
-            <UsageBanner />
-            <SearchBar />
-            <ResultsContainer />
-          </Box>
         </Box>
-      </Provider>
+      )}
     </AppContext.Provider>
   )
 }
 
-const Provider = ({ children }: { children: React.ReactNode }) => {
-  const { error, data } = useInstallComponent()
+export default function App() {
+  return (
+    <MemoryRouter>
+      <BentoGet />
+    </MemoryRouter>
+  )
+}
 
-  if (error) {
-    if (error.status === 401) {
-      return (
-        <Box flexDirection="column">
-          <CodeAuthScreen />
-        </Box>
-      )
-    }
+type ProtectedRouteProps = {
+  component: React.ComponentType<any>
+}
 
-    return (
-      <Box flexDirection="column">
-        <Alert variant="error">Error installing component: {JSON.stringify(error)}</Alert>
-        {children}
-      </Box>
-    )
-  }
-
-  return <>{children}</>
+const ProtectedRoute = ({ component: Component }: ProtectedRouteProps) => {
+  const { fileName } = useParams()
+  const { isLoggedIn } = React.useContext(AppContext)
+  return isLoggedIn ? <Component /> : <Navigate to={`/auth/${fileName}`} replace />
 }

@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Copy,
   File,
-  Info,
   Link as LinkIcon,
 } from '@tamagui/lucide-icons'
 import React, { useState } from 'react'
@@ -37,17 +36,22 @@ import {
   styled,
 } from 'tamagui'
 import { LinearGradient } from 'tamagui/linear-gradient'
-import { Link } from '~/components/Link'
-
+import type { Href } from 'one'
 import { Code, CodeInline } from '~/components/Code'
+import { CustomTabs } from '~/components/CustomTabs'
 import { DataTable } from '~/components/DataTable'
 import { Features } from '~/components/Features'
 import { HR } from '~/components/HR'
 import { LI } from '~/components/LI'
+import { Link } from '~/components/Link'
+import { LogoCard } from '~/components/LogoCard'
 import { Notice, NoticeFrame } from '~/components/Notice'
 import { OffsetBox } from '~/components/OffsetBox'
+import { Preview } from '~/components/Preview'
+import { ProductCard } from '~/components/ProductCard'
 import { SubTitle } from '~/components/SubTitle'
 import { TamaguiCard } from '~/components/TamaguiCard'
+import { TamaguiExamplesCode } from '~/components/TamaguiExamples'
 import { UL } from '~/components/UL'
 import { SponsorButton } from '~/features/docs/SponsorButton'
 import { ExternalIcon } from '~/features/icons/ExternalIcon'
@@ -57,6 +61,7 @@ import { BenchmarkChartWeb } from '~/features/site/benchmarks/BenchmarkChartWeb'
 import { MediaPlayer } from '~/features/site/home/MediaPlayer'
 import { SocialLinksRow } from '~/features/site/home/SocialLinksRow'
 import { unwrapText } from '~/helpers/unwrapText'
+import { pkgCommands, useBashCommand } from '~/hooks/useBashCommand'
 import { useClipboard } from '~/hooks/useClipboard'
 import { DocCodeBlock } from '../docs/DocsCodeBlock'
 import { HeroContainer } from '../docs/HeroContainer'
@@ -64,15 +69,7 @@ import { Highlights } from '../docs/Highlights'
 import { InlineTabs } from '../docs/InlineTabs'
 import { PropsTable } from '../docs/PropsTable'
 import * as Demos from '../docs/demos'
-
-import { CustomTabs } from '~/components/CustomTabs'
-import { LogoCard } from '~/components/LogoCard'
-import { Preview } from '~/components/Preview'
-import { ProductCard } from '~/components/ProductCard'
-import { TamaguiExamplesCode } from '~/components/TamaguiExamples'
-import { BentoCard } from '../bento/BentoCard'
 import { ExampleAnimations } from '../site/home/HomeAnimations'
-import { pkgCommands, useBashCommand } from '~/hooks/useBashCommand'
 
 if (!React.version.startsWith('19')) {
   console.error(`\n\n\n\Not on React 19 ❌\n\n\n\n`)
@@ -207,8 +204,6 @@ const componentsIn = {
     </YStack>
   ),
 
-  BentoCard,
-
   Adapt,
 
   Table,
@@ -251,12 +246,20 @@ const componentsIn = {
   TamaguiExamplesCode,
 
   InstallBanner: ({ name = '' }) => {
-    const { command, currentSelectedTab, setCurrentSelectedTab } = useBashCommand(
-      name,
-      ''
+    const {
+      transformedCommand,
+      isInstallCommand,
+      isExecCommand,
+      isCreateCommand,
+      selectedPackageManager,
+      setPackageManager,
+    } = useBashCommand(`yarn add ${name}`, 'language-bash')
+
+    const { transformedCommand: tamaguiCommand } = useBashCommand(
+      `npm install tamagui`,
+      'language-bash'
     )
-    const tamaguiCommand = `${command} tamagui`
-    const { onCopy, hasCopied } = useClipboard(command)
+    const { onCopy, hasCopied } = useClipboard(transformedCommand)
     const tamaguiCmdClip = useClipboard(tamaguiCommand)
 
     const CopyIcon = hasCopied ? Check : Copy
@@ -286,10 +289,7 @@ const componentsIn = {
                 cur="pointer"
                 onPress={onCopy}
               >
-                <SizableText color="$color11">
-                  {command}
-                  {name}
-                </SizableText>
+                <SizableText color="$color11">{transformedCommand}</SizableText>
 
                 <CopyIcon
                   p="$0.5"
@@ -304,61 +304,62 @@ const componentsIn = {
           </ThemeTint>
         )}
 
-        <TooltipSimple label="« Individually or all-in-one »">
-          <XStack ai="center">
-            <SizableText pe="none" size="$3">
-              or
-            </SizableText>
-            <Asterisk size={12} y={-8} />
-          </XStack>
-        </TooltipSimple>
+        {(isInstallCommand || isExecCommand || isCreateCommand) && (
+          <>
+            <TooltipSimple label="« Individually or all-in-one »">
+              <XStack ai="center">
+                <SizableText pe="none" size="$3">
+                  or
+                </SizableText>
+                <Asterisk size={12} y={-8} />
+              </XStack>
+            </TooltipSimple>
 
-        <ThemeTintAlt>
-          <TooltipSimple
-            restMs={1200}
-            delay={{
-              open: 1200,
-              close: 0,
-            }}
-            label={tamaguiCmdClip.hasCopied ? 'Copied' : 'Copy to clipboard'}
-          >
-            <XStack
-              ai="center"
-              gap="$2"
-              my="$1"
-              py="$1"
-              px="$2"
-              als="flex-start"
-              bg="$color3"
-              br="$3"
-              cur="pointer"
-              onPress={tamaguiCmdClip.onCopy}
-            >
-              <SizableText color="$color11">
-                {command}
-                tamagui
-              </SizableText>
-
-              <CopyIcon2
-                p="$0.5"
-                size={16}
-                color="$color10"
-                hoverStyle={{
-                  color: '$color2',
+            <ThemeTintAlt>
+              <TooltipSimple
+                restMs={1200}
+                delay={{
+                  open: 1200,
+                  close: 0,
                 }}
-              />
-            </XStack>
-          </TooltipSimple>
-        </ThemeTintAlt>
+                label={tamaguiCmdClip.hasCopied ? 'Copied' : 'Copy to clipboard'}
+              >
+                <XStack
+                  ai="center"
+                  gap="$2"
+                  my="$1"
+                  py="$1"
+                  px="$2"
+                  als="flex-start"
+                  bg="$color3"
+                  br="$3"
+                  cur="pointer"
+                  onPress={tamaguiCmdClip.onCopy}
+                >
+                  <SizableText color="$color11">{tamaguiCommand}</SizableText>
+
+                  <CopyIcon2
+                    p="$0.5"
+                    size={16}
+                    color="$color10"
+                    hoverStyle={{
+                      color: '$color2',
+                    }}
+                  />
+                </XStack>
+              </TooltipSimple>
+            </ThemeTintAlt>
+          </>
+        )}
 
         <XStack gap="$2">
           {Object.keys(pkgCommands).map((c) => {
-            const isActive = currentSelectedTab === c
+            const isActive = selectedPackageManager === c
             return (
               <SizableText
                 cur="pointer"
                 onPress={() => {
-                  setCurrentSelectedTab(c)
+                  setPackageManager(c)
                 }}
                 color="$color12"
                 o={isActive ? 0.8 : 0.5}
@@ -400,7 +401,7 @@ const componentsIn = {
       accessibilityLabel="Beta blog post"
       pe="none"
       size="$2"
-      theme="pink_alt2"
+      theme="pink"
       pos="absolute"
       t={-15}
       r={-75}
@@ -448,9 +449,8 @@ const componentsIn = {
     <H2
       pos="relative"
       width={`fit-content` as any}
-      pt="$8"
-      mt="$-4"
-      mb="$2"
+      pt="$7"
+      mb="$3"
       data-heading
       {...props}
     >
@@ -459,7 +459,7 @@ const componentsIn = {
   ),
 
   h3: ({ children, id, ...props }) => (
-    <LinkHeading pt="$8" mt="$-4" mb="$1" id={id}>
+    <LinkHeading pt="$8" mb="$1" id={id}>
       <H3 pos="relative" width={`fit-content` as any} id={id} data-heading {...props}>
         {children}
       </H3>
@@ -485,7 +485,7 @@ const componentsIn = {
 
   a: ({ href = '', children, ...props }) => {
     return (
-      <Link className="link" href={href} asChild>
+      <Link className="link" href={href as Href} asChild>
         {/* @ts-ignore */}
         <Paragraph
           tag="a"
@@ -519,7 +519,7 @@ const componentsIn = {
 
   ul: ({ children }) => {
     return (
-      <UL my="$4">
+      <UL tag="ul" my="$4">
         {React.Children.toArray(children).map((x) => (typeof x === 'string' ? null : x))}
       </UL>
     )
@@ -529,7 +529,15 @@ const componentsIn = {
 
   li: (props) => {
     return (
-      <LI size="$6" my="$1.5" className="docs-paragraph">
+      <LI
+        tag="li"
+        size="$6"
+        my="$1.5"
+        className="docs-paragraph"
+        style={{
+          listStyleType: 'disc',
+        }}
+      >
         {props.children}
       </LI>
     )
@@ -582,7 +590,7 @@ const componentsIn = {
 
     if (linked) {
       return (
-        <Link target="_blank" href={props.src as string}>
+        <Link target="_blank" href={props.src as Href}>
           {content}
         </Link>
       )
@@ -690,7 +698,7 @@ const componentsIn = {
           <YStack ov="hidden" f={1} o={0.85} space>
             <Paragraph>
               Tamagui is fully OSS, self-funded and built by{' '}
-              <a href="https://twitter.com/natebirdman" target="_blank" rel="noreferrer">
+              <a href="https://x.com/natebirdman" target="_blank" rel="noreferrer">
                 me
               </a>
               .
@@ -731,10 +739,12 @@ const componentsIn = {
             significantly improves your app or site performance.
           </IntroParagraph>
 
-          <Paragraph size="$6">Tamagui is three things:</Paragraph>
+          <IntroParagraph>
+            Tamagui is an ecosystem open source of libraries, mainly:
+          </IntroParagraph>
 
-          <UL mt="$4" gap="$2">
-            <ThemeTintAlt>
+          <UL mt="$4" pl="$4" gap="$2">
+            <Theme name="red">
               <LI size="$6" color="$color11">
                 {/* @ts-ignore */}
                 <Link fontSize="inherit" href="/docs/core/introduction">
@@ -742,13 +752,13 @@ const componentsIn = {
                     <span style={{ color: 'var(--color12)' }}>@tamagui/core</span>
                   </CodeInline>
                 </Link>
-                &nbsp;is a style library that expands on the React Native style API with
+                &nbsp; - a style library that expands on the React Native style API with
                 many features from CSS - all without any external dependency except for
                 React.
               </LI>
-            </ThemeTintAlt>
+            </Theme>
 
-            <ThemeTintAlt offset={2}>
+            <Theme name="green">
               <LI size="$6" color="$color11">
                 {/* @ts-ignore */}
                 <Link fontSize="inherit" href="/docs/intro/compiler-install">
@@ -756,7 +766,7 @@ const componentsIn = {
                     <span style={{ color: 'var(--color12)' }}>@tamagui/static</span>
                   </CodeInline>
                 </Link>{' '}
-                is an optimizing compiler that{' '}
+                - an optimizing compiler that{' '}
                 <Link
                   // @ts-ignore
                   fontSize="inherit"
@@ -767,9 +777,9 @@ const componentsIn = {
                 by hoisting objects and CSS at build-time, leaving behind flatter React
                 trees.
               </LI>
-            </ThemeTintAlt>
+            </Theme>
 
-            <ThemeTintAlt offset={3}>
+            <Theme name="blue">
               <LI size="$6" color="$color11">
                 {/* @ts-ignore */}
                 <Link fontSize="inherit" href="/docs/components/stacks">
@@ -777,9 +787,9 @@ const componentsIn = {
                     <span style={{ color: 'var(--color12)' }}>tamagui</span>
                   </CodeInline>
                 </Link>{' '}
-                is a large universal component kit in styled and unstyled forms.
+                - a large universal component kit in styled and unstyled forms.
               </LI>
-            </ThemeTintAlt>
+            </Theme>
           </UL>
         </ThemeTintAlt>
       </YStack>
@@ -791,7 +801,31 @@ const componentsIn = {
 
     return (
       <XStack gap="$4" f={1} fw="wrap" pt="$3" my="$5">
-        <ThemeTintAlt>
+        <>
+          <Link asChild href="/docs/intro/installation">
+            <Card
+              tag="a"
+              animation="quickest"
+              f={1}
+              y={0}
+              hoverStyle={{ y: -2, bg: '$backgroundHover' }}
+              pressStyle={{ y: 2, bg: '$color2' }}
+            >
+              <Card.Header gap="$2">
+                <H4 size="$4" color="$color8">
+                  Install
+                </H4>
+                <Paragraph size="$6" color="$color9">
+                  Set up an app.
+                </Paragraph>
+              </Card.Header>
+
+              <Card.Footer>
+                <ChevronRight pos="absolute" b="$4" r="$4" color="$color11" />
+              </Card.Footer>
+            </Card>
+          </Link>
+
           <Card f={1}>
             <Card.Header gap="$2">
               <H4 size="$4" color="$color9">
@@ -826,31 +860,7 @@ const componentsIn = {
               </XStack>
             </Card.Footer>
           </Card>
-        </ThemeTintAlt>
-
-        <Link asChild href="/docs/intro/installation">
-          <Card
-            tag="a"
-            animation="quickest"
-            f={1}
-            y={0}
-            hoverStyle={{ y: -2, bg: '$backgroundHover' }}
-            pressStyle={{ y: 2, bg: '$color2' }}
-          >
-            <Card.Header gap="$2">
-              <H4 size="$4" color="$color8">
-                Install
-              </H4>
-              <Paragraph size="$6" color="$color9">
-                Set up an app.
-              </Paragraph>
-            </Card.Header>
-
-            <Card.Footer>
-              <ChevronRight pos="absolute" b="$4" r="$4" color="$color11" />
-            </Card.Footer>
-          </Card>
-        </Link>
+        </>
       </XStack>
     )
   },

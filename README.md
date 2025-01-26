@@ -1,15 +1,28 @@
 <div align="center">
-  <img margin="auto" width="572px" src="https://github.com/tamagui/tamagui/raw/master/code/tamagui.dev/public/social.png" alt="Tamagui">
+  <picture width="572px">
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/tamagui/tamagui/raw/master/code/tamagui.dev/public/logo-black.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://github.com/tamagui/tamagui/raw/master/code/tamagui.dev/public/logo-white.png">
+    <img alt="Shows a black logo in light color mode and a white one in dark color mode." src="https://github.com/tamagui/tamagui/raw/master/code/tamagui.dev/public/social.png">
+  </picture>
 </div>
 
 <h3 align="center">
-  Style and UI for React (web and native) meet an optimizing compiler
+  Style library, design system, composable components, and more.
 </h3>
+
+<h4 align="center">
+  Tamagui is a bunch of libraries for building UIs that share code across React and React Native.
+</h4>
+
+<br />
 
 <div align="center">
   <img alt="NPM downloads" src="https://img.shields.io/npm/dw/@tamagui/core?logo=npm&label=NPM%20downloads&cacheSeconds=3600"/>
-  <img alt="Discord users online" src="https://img.shields.io/github/commit-activity/m/tamagui/tamagui?label=Commits&logo=git" />
-  <img alt="Commits per month" src="https://img.shields.io/discord/909986013848412191?logo=discord&label=Discord&cacheSeconds=3600" />
+  <img alt="Commits per month" src="https://img.shields.io/github/commit-activity/m/tamagui/tamagui?label=Commits&logo=git" />
+  <img alt="Discord users online" src="https://img.shields.io/discord/909986013848412191?logo=discord&label=Discord&cacheSeconds=3600" />
+  <a href="https://gurubase.io/g/tamagui">
+    <img alt="Gurubase" src="https://img.shields.io/badge/Gurubase-Ask%20Tamagui%20Guru-006BFF" />
+  </a>
 </div>
 
 <br />
@@ -35,36 +48,6 @@ The compiler optimizes most and ultimately flattens a majority of styled compone
 
 [Learn more on the website](https://tamagui.dev/docs/intro/introduction).
 
-## Installing Tamagui
-
-To install Tamagui with all its components run:
-
-```bash
-npm install tamagui @tamagui/config
-```
-
-Next, create a Tamagui config file named `tamagui.config.ts`:
-
-```ts
-import { config } from '@tamagui/config/v3'
-
-import { createTamagui } from 'tamagui'
-const tamaguiConfig = createTamagui(config)
-// this makes typescript properly type everything based on the config
-
-type Conf = typeof tamaguiConfig
-
-declare module 'tamagui' {
-
-  interface TamaguiCustomConfig extends Conf {}
-
-}
-export default tamaguiConfig
-// depending on if you chose tamagui, @tamagui/core, or @tamagui/web
-// be sure the import and declare module lines both use that same name
-```
-
-**Note:** The `v3` config imports the `@tamagui/animations-css` driver on web and `@tamagui/animations-react-native` on native. You can change these as you please, we provide exports for `animationsCSS` and `animationsNative`. If you want to use Reanimated, you can [copy and paste this code](https://github.com/tamagui/tamagui/blob/c9adbbe4a45d2a728f06605b0e5e91382dd5b92d/packages/config/src/animationsReanimated.ts) and pass it as `animations` to `createTamagui`.
 
 ## Contributing
 

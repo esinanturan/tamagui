@@ -4,8 +4,8 @@ on:
   pull_request:
   push:
     paths-ignore:
-      - "assets/**"
-      - ".vscode/**"
+      - 'assets/**'
+      - '.vscode/**'
     branches:
       - master
 
@@ -22,7 +22,7 @@ jobs:
           transcrypt_password: ${{ secrets.transcrypt_password }}
 
       - name: Check
-        run: yarn check
+        run: yarn && yarn check
 
       - name: Lint
         run: yarn lint
@@ -41,17 +41,11 @@ jobs:
       - name: Install playwright
         run: npx playwright install
 
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-
-      - name: Link Vercel Project
-        run: cd code/tamagui.dev && vercel link --project site --scope=tamagui --yes --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Pull Vercel Environment Information
-        run: cd code/tamagui.dev && vercel env pull .env --scope=tamagui --yes --token=${{ secrets.VERCEL_TOKEN }}
-
-      - uses: nick-fields/retry@v2
+      - uses: nick-fields/retry@v3
+        name: "Run tests"
+        env:
+          YARN_ENABLE_IMMUTABLE_INSTALLS: false
         with:
           timeout_minutes: 15
           max_attempts: 2
-          command: "yarn test:ci"
+          command: 'yarn test'

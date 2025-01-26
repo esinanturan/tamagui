@@ -124,7 +124,6 @@ export declare const stylePropsView: {
     borderLeftStyle?: boolean | undefined;
     borderRightStyle?: boolean | undefined;
     borderTopStyle?: boolean | undefined;
-    boxShadow?: boolean | undefined;
     boxSizing?: boolean | undefined;
     caretColor?: boolean | undefined;
     clipPath?: boolean | undefined;
@@ -132,7 +131,6 @@ export declare const stylePropsView: {
     containerType?: boolean | undefined;
     content?: boolean | undefined;
     cursor?: boolean | undefined;
-    filter?: boolean | undefined;
     float?: boolean | undefined;
     mask?: boolean | undefined;
     maskBorder?: boolean | undefined;
@@ -167,6 +165,8 @@ export declare const stylePropsView: {
     touchAction?: boolean | undefined;
     transformStyle?: boolean | undefined;
     userSelect?: boolean | undefined;
+    boxShadow: boolean;
+    filter: boolean;
     WebkitLineClamp: boolean;
     animationIterationCount: boolean;
     aspectRatio: boolean;
@@ -339,15 +339,6 @@ export declare const stylePropsView: {
     shadowOffset: boolean;
     shadowRadius: boolean;
 };
-export declare const stylePropsFont: {
-    fontFamily: boolean;
-    fontSize: boolean;
-    fontStyle: boolean;
-    fontWeight: boolean;
-    letterSpacing: boolean;
-    lineHeight: boolean;
-    textTransform: boolean;
-};
 export declare const stylePropsTextOnly: {
     whiteSpace?: boolean | undefined;
     wordWrap?: boolean | undefined;
@@ -371,6 +362,7 @@ export declare const stylePropsTextOnly: {
     fontSize: boolean;
     fontStyle: boolean;
     fontWeight: boolean;
+    fontVariant: boolean;
     letterSpacing: boolean;
     lineHeight: boolean;
     textTransform: boolean;
@@ -398,6 +390,7 @@ export declare const stylePropsText: {
     fontSize: boolean;
     fontStyle: boolean;
     fontWeight: boolean;
+    fontVariant: boolean;
     letterSpacing: boolean;
     lineHeight: boolean;
     textTransform: boolean;
@@ -420,14 +413,12 @@ export declare const stylePropsText: {
     borderLeftStyle?: boolean | undefined;
     borderRightStyle?: boolean | undefined;
     borderTopStyle?: boolean | undefined;
-    boxShadow?: boolean | undefined;
     boxSizing?: boolean | undefined;
     caretColor?: boolean | undefined;
     clipPath?: boolean | undefined;
     contain?: boolean | undefined;
     containerType?: boolean | undefined;
     content?: boolean | undefined;
-    filter?: boolean | undefined;
     float?: boolean | undefined;
     mask?: boolean | undefined;
     maskBorder?: boolean | undefined;
@@ -461,6 +452,8 @@ export declare const stylePropsText: {
     textEmphasis?: boolean | undefined;
     touchAction?: boolean | undefined;
     transformStyle?: boolean | undefined;
+    boxShadow: boolean;
+    filter: boolean;
     animationIterationCount: boolean;
     aspectRatio: boolean;
     borderImageOutset: boolean;
@@ -651,6 +644,7 @@ export declare const stylePropsAll: {
     fontSize: boolean;
     fontStyle: boolean;
     fontWeight: boolean;
+    fontVariant: boolean;
     letterSpacing: boolean;
     lineHeight: boolean;
     textTransform: boolean;
@@ -673,14 +667,12 @@ export declare const stylePropsAll: {
     borderLeftStyle?: boolean | undefined;
     borderRightStyle?: boolean | undefined;
     borderTopStyle?: boolean | undefined;
-    boxShadow?: boolean | undefined;
     boxSizing?: boolean | undefined;
     caretColor?: boolean | undefined;
     clipPath?: boolean | undefined;
     contain?: boolean | undefined;
     containerType?: boolean | undefined;
     content?: boolean | undefined;
-    filter?: boolean | undefined;
     float?: boolean | undefined;
     mask?: boolean | undefined;
     maskBorder?: boolean | undefined;
@@ -714,6 +706,8 @@ export declare const stylePropsAll: {
     textEmphasis?: boolean | undefined;
     touchAction?: boolean | undefined;
     transformStyle?: boolean | undefined;
+    boxShadow: boolean;
+    filter: boolean;
     animationIterationCount: boolean;
     aspectRatio: boolean;
     borderImageOutset: boolean;
@@ -889,6 +883,7 @@ export declare const validPseudoKeys: {
     pressStyle: boolean;
     focusStyle: boolean;
     disabledStyle: boolean;
+    focusWithinStyle: boolean;
 };
 export declare const validStyles: {
     elevationAndroid?: boolean | undefined;
@@ -910,7 +905,6 @@ export declare const validStyles: {
     borderLeftStyle?: boolean | undefined;
     borderRightStyle?: boolean | undefined;
     borderTopStyle?: boolean | undefined;
-    boxShadow?: boolean | undefined;
     boxSizing?: boolean | undefined;
     caretColor?: boolean | undefined;
     clipPath?: boolean | undefined;
@@ -918,7 +912,6 @@ export declare const validStyles: {
     containerType?: boolean | undefined;
     content?: boolean | undefined;
     cursor?: boolean | undefined;
-    filter?: boolean | undefined;
     float?: boolean | undefined;
     mask?: boolean | undefined;
     maskBorder?: boolean | undefined;
@@ -953,6 +946,8 @@ export declare const validStyles: {
     touchAction?: boolean | undefined;
     transformStyle?: boolean | undefined;
     userSelect?: boolean | undefined;
+    boxShadow: boolean;
+    filter: boolean;
     WebkitLineClamp: boolean;
     animationIterationCount: boolean;
     aspectRatio: boolean;
@@ -1124,12 +1119,5 @@ export declare const validStyles: {
     direction: boolean;
     shadowOffset: boolean;
     shadowRadius: boolean;
-    focusVisibleStyle?: boolean | undefined;
-    enterStyle: boolean;
-    exitStyle: boolean;
-    hoverStyle: boolean;
-    pressStyle: boolean;
-    focusStyle: boolean;
-    disabledStyle: boolean;
 };
 //# sourceMappingURL=validStyleProps.d.ts.map

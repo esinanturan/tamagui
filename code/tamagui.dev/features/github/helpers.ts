@@ -1,4 +1,4 @@
-import { octokit } from '~/features/github/octokit'
+import { getOctokit } from '~/features/github/octokit'
 
 export type GithubSponsorshipStatus =
   | {
@@ -153,6 +153,11 @@ const codinscapeusers = ['NathanBeesley']
 const callstackusers = ['troZee']
 
 export const whitelistBentoUsernames = new Set([
+  // team
+  'baronha',
+  'poteboy',
+  'zetavg',
+
   'Bankilo',
   'meal',
   'Bar-Cet',
@@ -449,7 +454,8 @@ export const inviteCollaboratorToRepo = async (
   )
 
   try {
-    await octokit.rest.repos.addCollaborator({
+    const octokit = await getOctokit()
+    octokit.rest.repos.addCollaborator({
       owner: 'tamagui',
       repo: repoName,
       username: userLogin,

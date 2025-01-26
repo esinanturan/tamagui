@@ -3,6 +3,7 @@ import { defineConfig } from '@playwright/test'
 export default defineConfig({
   // Look for test files in the "tests" directory, relative to this configuration file.
   testDir: 'tests',
+  reporter: [['list']],
 
   use: {
     // Base URL to use in actions like `await page.goto('/')`.
@@ -10,13 +11,13 @@ export default defineConfig({
   },
   // Run your local dev server before starting the tests.
   webServer: {
-    command: 'yarn dev:web',
+    command: 'yarn start:web',
     url: 'http://localhost:9000',
     reuseExistingServer: !process.env.CI,
   },
 
   fullyParallel: true,
-  retries: 1,
+  retries: 2,
 
   timeout: 50_000,
 })

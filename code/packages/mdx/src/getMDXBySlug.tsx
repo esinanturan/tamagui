@@ -9,12 +9,17 @@ import rehypeMetaAttribute from './rehypeMetaAttribute'
 import rehypeHeroTemplate from './rehypeHeroTemplate'
 import rehypeAutolinkHeadings from 'rehype-autolink-headings'
 import rehypeSlug from 'rehype-slug'
+import { getHeadings } from './getHeadings'
 
-export const getMDXBySlug = async (
+export async function getMDXBySlug(
   basePath: string,
   slug: string
-): Promise<{ frontmatter: Frontmatter; code: string }> => {
+): Promise<{ frontmatter: Frontmatter; code: string }> {
   let mdxPath = slug
+
+  if (!slug) {
+    throw new Error(`No slug: ${slug} ${[...arguments].join(',')}`)
+  }
 
   // if no version given, find it
   if (!slug.includes('.') && basePath.includes('components')) {
@@ -28,7 +33,7 @@ export const getMDXBySlug = async (
   return {
     frontmatter: {
       ...frontmatter,
-      slug,
+      headings: getHeadings(source),
       readingTime: readingTime(code),
     } as Frontmatter,
     code,

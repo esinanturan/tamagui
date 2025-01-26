@@ -1,18 +1,18 @@
-import { ResetPresence, usePresence } from '@tamagui/use-presence'
 import { isWeb, useIsomorphicLayoutEffect } from '@tamagui/constants'
+import { ResetPresence, usePresence } from '@tamagui/use-presence'
 import type {
   AnimatedNumberStrategy,
   AnimationDriver,
   AnimationProp,
   UniversalAnimatedNumber,
+  UseAnimatedNumberReaction,
+  UseAnimatedNumberStyle,
 } from '@tamagui/web'
 import { useEvent } from '@tamagui/web'
-import { useEffect, useMemo, useRef } from 'react'
-import { Animated } from 'react-native'
+import React from 'react'
+import { Animated, type Text, type View } from 'react-native'
 
-type AnimationsConfig<A extends Object = any> = {
-  [Key in keyof A]: AnimationConfig
-}
+type AnimationsConfig<A extends Object = any> = { [Key in keyof A]: AnimationConfig }
 
 type SpringConfig = { type?: 'spring' } & Partial<
   Pick<
@@ -65,13 +65,13 @@ const costlyToAnimateStyleKey = {
   // TODO for other keys like height or width, it's better to not add them here till layout animations are ready
 }
 
-export const AnimatedView = Animated.View
-export const AnimatedText = Animated.Text
+export const AnimatedView: Animated.AnimatedComponent<typeof View> = Animated.View
+export const AnimatedText: Animated.AnimatedComponent<typeof Text> = Animated.Text
 
 export function useAnimatedNumber(
   initial: number
 ): UniversalAnimatedNumber<Animated.Value> {
-  const state = useRef(
+  const state = React.useRef(
     null as any as {
       val: Animated.Value
       composite: Animated.CompositeAnimation | null
@@ -129,19 +129,17 @@ export function useAnimatedNumber(
   }
 }
 
-export function useAnimatedNumberReaction(
-  {
-    value,
-  }: {
-    value: UniversalAnimatedNumber<Animated.Value>
-  },
-  onValue: (current: number) => void
-) {
+type RNAnimatedNum = UniversalAnimatedNumber<Animated.Value>
+
+export const useAnimatedNumberReaction: UseAnimatedNumberReaction<RNAnimatedNum> = (
+  { value },
+  onValue
+) => {
   const onChange = useEvent((current) => {
     onValue(current.value)
   })
 
-  useEffect(() => {
+  React.useEffect(() => {
     const id = value.getInstance().addListener(onChange)
     return () => {
       value.getInstance().removeListener(id)
@@ -149,10 +147,10 @@ export function useAnimatedNumberReaction(
   }, [value, onChange])
 }
 
-export function useAnimatedNumberStyle<V extends UniversalAnimatedNumber<Animated.Value>>(
-  value: V,
-  getStyle: (value: any) => any
-) {
+export const useAnimatedNumberStyle: UseAnimatedNumberStyle<RNAnimatedNum> = (
+  value,
+  getStyle
+) => {
   return getStyle(value.getInstance())
 }
 
@@ -170,13 +168,14 @@ export function createAnimations<A extends AnimationsConfig>(
     usePresence,
     ResetPresence,
     useAnimations: ({ props, onDidAnimate, style, componentState, presence }) => {
+      const isDisabled = isWeb && componentState.unmounted === true
       const isExiting = presence?.[0] === false
       const sendExitComplete = presence?.[1]
 
       /** store Animated value of each key e.g: color: AnimatedValue */
-      const animateStyles = useRef<Record<string, Animated.Value>>({})
-      const animatedTranforms = useRef<{ [key: string]: Animated.Value }[]>([])
-      const animationsState = useRef(
+      const animateStyles = React.useRef<Record<string, Animated.Value>>({})
+      const animatedTranforms = React.useRef<{ [key: string]: Animated.Value }[]>([])
+      const animationsState = React.useRef(
         new WeakMap<
           Animated.Value,
           {
@@ -194,7 +193,7 @@ export function createAnimations<A extends AnimationsConfig>(
       const args = [JSON.stringify(style), componentState, isExiting, !!onDidAnimate]
 
       // check if there is any style that is not supported by native driver
-      const isThereNoNativeStyleKeys = useMemo(() => {
+      const isThereNoNativeStyleKeys = React.useMemo(() => {
         if (isWeb) return true
         return Object.keys(style).some((key) => {
           if (animateOnly.length) {
@@ -204,7 +203,7 @@ export function createAnimations<A extends AnimationsConfig>(
         })
       }, args)
 
-      const res = useMemo(() => {
+      const res = React.useMemo(() => {
         const runners: Function[] = []
         const completions: Promise<void>[] = []
 
@@ -212,6 +211,11 @@ export function createAnimations<A extends AnimationsConfig>(
 
         for (const key in style) {
           const val = style[key]
+
+          if (isDisabled) {
+            continue
+          }
+
           if (animatedStyleKey[key] == null && !costlyToAnimateStyleKey[key]) {
             nonAnimatedStyle[key] = val
             continue

@@ -1,4 +1,4 @@
-import type { Template, ThemeDefinitions, ThemeWithParent } from '@tamagui/create-theme'
+import type { Template, ThemeWithParent } from '@tamagui/create-theme'
 
 type Component = (props?: any) => any
 
@@ -7,12 +7,8 @@ export type ThemeSuiteItem = {
   name: string
   createdAt: number
   updatedAt: number
-  selectedSchemes: { light: boolean; dark: boolean }
-  baseTheme: BuildTheme
-  subThemes: BuildSubTheme[]
+  schemes: { light: boolean; dark: boolean }
   palettes: Record<string, BuildPalette>
-  componentThemes: ThemeDefinitions
-  templates: BuildTemplates
 }
 
 export type SectionStep = {
@@ -79,8 +75,6 @@ export type BuildPalette = {
   scale?: ScaleTypeName
   anchors: BuildThemeAnchor[]
 }
-
-export type BuildThemeSuiteProps = Omit<ThemeSuiteItemData, 'name'>
 
 export type BuildThemeSuitePalettes = {
   light: string[]

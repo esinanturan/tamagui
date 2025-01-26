@@ -282,6 +282,13 @@ Contains every component for the sheet.
       description:
         'Native-only flag that will make the sheet move up when the mobile keyboard opens so the focused input remains visible.',
     },
+      {
+      name: 'unmountChildrenWhenHidden',
+      type: 'boolean',
+      default: 'false',
+      description:
+        'Flag to enable unmounting the children after the exit animation has completed.',
+    },
   ]}
 />
 
@@ -316,7 +323,7 @@ Extends [XStack](/docs/components/stacks).
 
 ### Sheet.ScrollView
 
-Allows scrolling within Sheet. Extends [Scrollview](/docs/components/scroll-view).
+Allows scrolling within Sheet. Extends [ScrollView](/docs/components/scroll-view).
 
 #### useSheet
 

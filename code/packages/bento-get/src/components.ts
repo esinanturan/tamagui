@@ -2,9 +2,9 @@ export type ComponentSchema = {
   name: string
   category: string
   categorySection: string
-  // url: string
   fileName: string
   dependencies?: string[]
+  bentoDependencies?: string[]
   isOSS: boolean
   moveFilesToFolder?: MoveFileToFolder[]
 }
@@ -282,7 +282,7 @@ const MISSING_COMPONENTS: Omit<ComponentSchema, 'isOSS'>[] = [
 ]
 // NOTE: hardcoded list but using getAllComponentsForBentoCli.js
 // TODO: use getAllComponentsForBentoCli.js on github action and request schema file as json from url
-export const componentsList: Omit<ComponentSchema, 'isOSS'>[] = [
+export const componentsList: ComponentSchema[] = [
   {
     name: 'Loading Animation',
     fileName: 'ButtonLoading',
@@ -517,6 +517,16 @@ export const componentsList: Omit<ComponentSchema, 'isOSS'>[] = [
     fileName: 'RangePicker',
     category: 'elements',
     categorySection: 'datepickers',
+    dependencies: [
+      '@tamagui/lucide-icons',
+      '@rehookify/datepicker',
+      '@tamagui/linear-gradient',
+    ],
+    bentoDependencies: [
+      './common/dateParts',
+      './common/useDateAnimation',
+      './common/dateParts',
+    ],
     moveFilesToFolder: [
       { file: 'MultiSelectPicker', to: '' },
       { file: 'DatePicker', to: '' },
@@ -817,6 +827,8 @@ export const componentsList: Omit<ComponentSchema, 'isOSS'>[] = [
     fileName: 'GroupedRadio',
     category: 'forms',
     categorySection: 'radiogroups',
+    dependencies: [],
+    bentoDependencies: ['./components/radioParts'],
     moveFilesToFolder: [
       { file: 'GroupedRadio', to: '' },
       { file: 'radioParts', to: 'components' },
@@ -1000,7 +1012,7 @@ export const componentsList: Omit<ComponentSchema, 'isOSS'>[] = [
   },
   {
     name: 'Email Preferences',
-    fileName: 'LocationNotification',
+    fileName: 'EmailPreferences',
     category: 'user',
     categorySection: 'preferences',
     dependencies: [
@@ -1008,7 +1020,7 @@ export const componentsList: Omit<ComponentSchema, 'isOSS'>[] = [
       '@tamagui/lucide-icons',
       '@tamagui/get-font-sized',
     ],
-    moveFilesToFolder: [{ file: 'LocationNotification', to: '' }],
+    moveFilesToFolder: [{ file: 'EmailPreferences', to: '' }],
   },
   {
     name: 'Employees Status Tracker',
@@ -1020,5 +1032,5 @@ export const componentsList: Omit<ComponentSchema, 'isOSS'>[] = [
   },
   ...MISSING_COMPONENTS,
 ].map((item) => {
-  return { ...item, isOSS: OSS_COMPONENTS.includes(item.fileName) }
+  return { ...item, isOSS: Boolean(OSS_COMPONENTS.includes(item.fileName)) }
 })

@@ -1,10 +1,9 @@
 {
   "name": "@tamagui/font-glusp",
-  "version": "1.105.5",
+  "version": "1.123.2",
   "types": "./types/index.d.ts",
   "main": "dist/cjs",
   "module": "dist/esm",
-  "module:jsx": "dist/jsx",
   "files": [
     "types",
     "dist",
@@ -14,16 +13,16 @@
   "scripts": {
     "build": "tamagui-build",
     "watch": "tamagui-build --watch",
-    "lint": "npx biome check src",
-    "lint:fix": "npx biome check --apply-unsafe src",
+    "lint": "biome check src",
+    "lint:fix": "biome check --write src",
     "clean": "tamagui-build clean",
     "clean:build": "tamagui-build clean:build"
   },
   "dependencies": {
-    "@tamagui/web": "1.105.5"
+    "@tamagui/web": "1.123.2"
   },
   "devDependencies": {
-    "@tamagui/build": "1.105.5"
+    "@tamagui/build": "1.123.2"
   },
   "publishConfig": {
     "access": "public"

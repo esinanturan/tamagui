@@ -190,27 +190,9 @@ const ButtonComponent = ButtonFrame.styleable<ButtonExtraProps>(
   function Button(props, ref) {
     // @ts-ignore
     const { props: buttonProps } = useButton(props)
-    return <ButtonFrame {...buttonProps} ref={ref} />
+    return <ButtonFrame data-disable-theme {...buttonProps} ref={ref} />
   }
 )
-
-/**
- * @deprecated Instead of useButton, see the Button docs for the newer and much improved Advanced customization pattern: https://tamagui.dev/docs/components/button
- */
-const buttonStaticConfig = {
-  inlineProps: new Set([
-    // text props go here (can't really optimize them, but we never fully extract button anyway)
-    // may be able to remove this entirely, as the compiler / runtime have gotten better
-    'color',
-    'fontWeight',
-    'fontSize',
-    'fontFamily',
-    'fontStyle',
-    'letterSpacing',
-    'textAlign',
-    'unstyled',
-  ]),
-}
 
 const Button = withStaticProperties(ButtonComponent, {
   Text: ButtonText,
@@ -295,7 +277,7 @@ function useButton<Props extends ButtonProps>(
 
   const inner = spacedChildren({
     // a bit arbitrary but scaling to font size is necessary so long as button does
-    space: spaceSize,
+    space: spaceSize === false ? 0 : spaceSize == true ? '$true' : spaceSize,
     spaceFlex,
     ensureKeys: true,
     separator,
@@ -351,7 +333,6 @@ export {
   ButtonFrame,
   ButtonIcon,
   ButtonText,
-  buttonStaticConfig,
   // legacy
   useButton,
 }

@@ -214,6 +214,9 @@ export const stylePropsView = {
   ...stylePropsTransform,
   ...stylePropsUnitless,
 
+  boxShadow: true,
+  filter: true,
+
   // allow a few web only ones
 
   ...(process.env.TAMAGUI_TARGET === 'web' && {
@@ -236,7 +239,6 @@ export const stylePropsView = {
     borderLeftStyle: true,
     borderRightStyle: true,
     borderTopStyle: true,
-    boxShadow: true,
     boxSizing: true,
     caretColor: true,
     clipPath: true,
@@ -244,7 +246,6 @@ export const stylePropsView = {
     containerType: true,
     content: true,
     cursor: true,
-    filter: true,
     float: true,
     mask: true,
     maskBorder: true,
@@ -283,11 +284,12 @@ export const stylePropsView = {
   ...(isAndroid ? { elevationAndroid: true } : {}),
 }
 
-export const stylePropsFont = {
+const stylePropsFont = {
   fontFamily: true,
   fontSize: true,
   fontStyle: true,
   fontWeight: true,
+  fontVariant: true,
   letterSpacing: true,
   lineHeight: true,
   textTransform: true,
@@ -331,6 +333,7 @@ export const validPseudoKeys = {
   pressStyle: true,
   focusStyle: true,
   disabledStyle: true,
+  focusWithinStyle: true,
 
   // allow some web only ones
   ...(process.env.TAMAGUI_TARGET === 'web' && {
@@ -338,7 +341,4 @@ export const validPseudoKeys = {
   }),
 }
 
-export const validStyles = {
-  ...validPseudoKeys,
-  ...stylePropsView,
-}
+export const validStyles = stylePropsView

@@ -24,7 +24,7 @@ import { LinearGradient } from 'tamagui/linear-gradient'
 import { Code } from '~/components/Code'
 import { ErrorBoundary } from '~/components/ErrorBoundary'
 import { Pre } from '~/components/Pre'
-import { RowingTabs } from '~/components/RowingTabs'
+import { RovingTabs } from '~/components/RovingTabs'
 import { useBashCommand } from '~/hooks/useBashCommand'
 import { useClipboard } from '~/hooks/useClipboard'
 import { toggleDocsTinted } from './docsTint'
@@ -70,8 +70,20 @@ export const DocCodeBlock = forwardRef((props: any, ref) => {
   const { hasCopied, onCopy } = useClipboard(code)
   const showLineNumbers = showLineNumbersIn ?? lines > 10
 
-  const { command, getCode, isTerminal } = useBashCommand(children, className)
-  const showFileName = fileName || isTerminal
+  const {
+    isTerminalCommand,
+    isCreateCommand,
+    isInstallCommand,
+    isExecCommand,
+    showTabs,
+    commandType,
+    transformedCommand,
+    originalPackageManager,
+    selectedPackageManager,
+    setPackageManager,
+  } = useBashCommand(children, className)
+
+  const showFileName = fileName || isTerminalCommand
 
   const isPreVisible = !isCollapsed || !isCollapsible
 
@@ -81,7 +93,7 @@ export const DocCodeBlock = forwardRef((props: any, ref) => {
       if (codeElement) {
         // remove double line breaks
         const codeExtract = codeElement.innerText.replace(/\n{3,}/g, '\n')
-        setCode(getCode(codeExtract))
+        setCode(transformedCommand)
       }
     } catch (err) {
       console.warn('err', err)
@@ -91,7 +103,7 @@ export const DocCodeBlock = forwardRef((props: any, ref) => {
 
   useEffect(() => {
     onCommandChange()
-  }, [command, onCommandChange])
+  }, [transformedCommand, onCommandChange])
 
   return (
     <YStack
@@ -155,7 +167,7 @@ export const DocCodeBlock = forwardRef((props: any, ref) => {
                 zi={1000}
               >
                 <Spacer f={1} />
-                <Button onPress={() => setIsCutoff(!isCutoff)} als="center">
+                <Button size="$3" onPress={() => setIsCutoff(!isCutoff)} als="center">
                   Show more
                 </Button>
                 <Spacer size="$4" />
@@ -185,62 +197,37 @@ export const DocCodeBlock = forwardRef((props: any, ref) => {
                   bc="$background"
                   br="$5"
                 >
-                  {isTerminal ? (
+                  {isTerminalCommand ? (
                     <TerminalSquare size="$1" col="$color11" />
                   ) : (
                     <FileCode2 size="$1" col="$color11" />
                   )}
                   <Paragraph col="$color11">
-                    {isTerminal ? 'Terminal' : fileName}
+                    {isTerminalCommand ? 'Terminal' : fileName}
                   </Paragraph>
                 </XStack>
               )}
 
-              <RowingTabs className={className} size={size} {...rest}>
-                <ScrollView
-                  style={{ width: '100%' }}
-                  contentContainerStyle={{ minWidth: '100%' }}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                >
-                  <Code
-                    p="$4"
-                    backgroundColor="transparent"
-                    f={1}
-                    className={className}
-                    size={size ?? '$5'}
-                    lineHeight={size ?? '$5'}
-                    {...rest}
-                  >
-                    {children}
-                  </Code>
-                </ScrollView>
-              </RowingTabs>
+              <RovingTabs
+                className={className}
+                size={size}
+                {...rest}
+                {...(showTabs && {
+                  width: '100%',
+                })}
+              >
+                {children}
+              </RovingTabs>
             </Pre>
 
             <AnimatePresence>
               {isLong && !isCutoff && (
-                <Button
-                  position="absolute"
-                  aria-label="Collapse code block"
-                  size="$2"
-                  top={showFileName ? '$3' : '$3.5'}
-                  right="$10"
-                  display="inline-flex"
-                  iconAfter={ChevronsDownUp}
-                  scaleIcon={1.25}
-                  bg="$color1"
-                  o={1}
-                  animation="quickest"
-                  enterStyle={{ x: 5, o: 0 }}
-                  exitStyle={{ x: 5, o: 0 }}
-                  onPress={() => setIsCutoff(true)}
-                  $xs={{
-                    display: 'none',
-                  }}
-                >
-                  Show less
-                </Button>
+                <>
+                  <Spacer />
+                  <Button size="$3" onPress={() => setIsCutoff(!isCutoff)} als="center">
+                    Show less
+                  </Button>
+                </>
               )}
             </AnimatePresence>
 
@@ -258,7 +245,9 @@ export const DocCodeBlock = forwardRef((props: any, ref) => {
                   $xs={{
                     display: 'none',
                   }}
-                />
+                >
+                  Copy
+                </Button>
               </TooltipSimple>
             )}
           </YStack>

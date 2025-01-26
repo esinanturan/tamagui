@@ -1,9 +1,10 @@
 import { ThemeTintAlt } from '@tamagui/logo'
 import { ChevronRight } from '@tamagui/lucide-icons'
 import { Card, H3, Paragraph, Stack, View, YStack } from 'tamagui'
-import { Link } from './Link'
+import type { Href } from 'one'
 import { BentoIcon } from '~/features/icons/BentoIcon'
 import { TakeoutIcon } from '~/features/icons/TakeoutIcon'
+import { Link } from './Link'
 
 const productSettings = (
   product: string
@@ -26,11 +27,11 @@ export function ProductCard({ product, children, ...props }) {
   const { colorOffset, Icon } = productSettings(product)
 
   return (
-    <Link asChild href={link}>
+    <Link asChild href={link as Href}>
       <Stack
         group="card"
         tag="a"
-        theme="surface4"
+        theme="surface3"
         animation="quickest"
         bg="$background"
         f={1}
@@ -53,7 +54,7 @@ export function ProductCard({ product, children, ...props }) {
             zi={0}
             br="$4"
             style={{
-              background: `linear-gradient(transparent, var(--color05))`,
+              background: `linear-gradient(transparent, var(--color04))`,
               mixBlendMode: 'color',
             }}
           />

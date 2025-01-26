@@ -1,7 +1,7 @@
-import { execSync } from 'child_process'
-import { existsSync, readFileSync, readSync, renameSync } from 'fs'
-import fs from 'fs/promises'
-import path from 'path'
+import { execSync } from 'node:child_process'
+import { existsSync, readFileSync, renameSync } from 'node:fs'
+import fs from 'node:fs/promises'
+import path from 'node:path'
 
 import chalk from 'chalk'
 import prompts from 'prompts'
@@ -130,8 +130,8 @@ visit your project:
     Find info on the rest of the scripts in ${chalk.cyan(`supabase/README.md`)}
 
     If you've purchased and gained access to font and icon packages, you can run:
-    ${chalk.green('yarn tamagui add icon')}
-    ${chalk.green('yarn tamagui add font')}
+    ${chalk.green('yarn add:icon')}
+    ${chalk.green('yarn add:font')}
   `)
 }
 export default main

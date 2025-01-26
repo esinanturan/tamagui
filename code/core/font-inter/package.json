@@ -1,10 +1,9 @@
 {
   "name": "@tamagui/font-inter",
-  "version": "1.105.5",
+  "version": "1.123.2",
   "types": "./types/index.d.ts",
   "main": "dist/cjs",
   "module": "dist/esm",
-  "module:jsx": "dist/jsx",
   "files": [
     "types",
     "dist",
@@ -42,26 +41,30 @@
     "./otf/Inter-Thin.otf": "./otf/Inter-Thin.otf",
     "./otf/Inter-ThinItalic.otf": "./otf/Inter-ThinItalic.otf",
     ".": {
-      "react-native": "./dist/cjs/index.native.js",
+      "react-native": {
+        "import": "./dist/esm/index.native.js",
+        "require": "./dist/cjs/index.native.js"
+      },
       "types": "./types/index.d.ts",
       "import": "./dist/esm/index.mjs",
-      "require": "./dist/cjs/index.js"
+      "require": "./dist/cjs/index.cjs",
+      "default": "./dist/cjs/index.native.js"
     }
   },
   "scripts": {
     "build": "tamagui-build",
     "subset": "node -r esbuild-register subset.ts",
     "watch": "tamagui-build --watch",
-    "lint": "npx biome check src",
-    "lint:fix": "npx biome check --apply-unsafe src",
+    "lint": "biome check src",
+    "lint:fix": "biome check --write src",
     "clean": "tamagui-build clean",
     "clean:build": "tamagui-build clean:build"
   },
   "dependencies": {
-    "@tamagui/core": "1.105.5"
+    "@tamagui/core": "1.123.2"
   },
   "devDependencies": {
-    "@tamagui/build": "1.105.5",
+    "@tamagui/build": "1.123.2",
     "subset-font": "^2.1.0"
   },
   "publishConfig": {

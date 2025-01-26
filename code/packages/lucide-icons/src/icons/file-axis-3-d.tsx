@@ -1,24 +1,6 @@
-import React, { memo } from 'react'
-import PropTypes from 'prop-types'
+import React from 'react'
 import type { IconProps } from '@tamagui/helpers-icon'
-import {
-  Svg,
-  Circle as _Circle,
-  Ellipse,
-  G,
-  LinearGradient,
-  RadialGradient,
-  Line,
-  Path,
-  Polygon,
-  Polyline,
-  Rect,
-  Symbol,
-  Text as _Text,
-  Use,
-  Defs,
-  Stop,
-} from 'react-native-svg'
+import { Svg, Path } from 'react-native-svg'
 import { themed } from '@tamagui/helpers-icon'
 
 const Icon = (props) => {
@@ -39,6 +21,7 @@ const Icon = (props) => {
         d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"
         stroke={color}
       />
+
       <Path d="M14 2v4a2 2 0 0 0 2 2h4" stroke={color} />
       <Path d="m8 18 4-4" stroke={color} />
       <Path d="M8 10v8h8" stroke={color} />
@@ -48,4 +31,4 @@ const Icon = (props) => {
 
 Icon.displayName = 'FileAxis3d'
 
-export const FileAxis3d = memo<IconProps>(themed(Icon))
+export const FileAxis3d = React.memo<IconProps>(themed(Icon))

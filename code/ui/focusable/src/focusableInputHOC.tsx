@@ -1,7 +1,7 @@
 import { composeRefs } from '@tamagui/compose-refs'
-import type { TamaguiComponent } from '@tamagui/web'
 import { useEvent } from '@tamagui/web'
-import { type MutableRefObject, useCallback, useEffect, useRef } from 'react'
+import type { MutableRefObject } from 'react'
+import React from 'react'
 
 import { registerFocusable } from './registerFocusable'
 
@@ -16,16 +16,12 @@ export function useFocusable({
   isInput,
   props,
   ref,
-}: {
-  isInput?: boolean
-  props: FocusableProps
-  ref?: MutableRefObject<any>
-}) {
+}: { isInput?: boolean; props: FocusableProps; ref?: MutableRefObject<any> }) {
   const { id, onChangeText, value, defaultValue } = props
-  const inputValue = useRef(value || defaultValue || '')
-  const unregisterFocusable = useRef<() => void | undefined>()
+  const inputValue = React.useRef(value || defaultValue || '')
+  const unregisterFocusable = React.useRef<() => void | undefined>()
 
-  const inputRef = useCallback(
+  const inputRef = React.useCallback(
     (input) => {
       if (!id) return
       if (!input) return
@@ -49,7 +45,7 @@ export function useFocusable({
 
   const combinedRefs = composeRefs(ref, inputRef)
 
-  useEffect(() => {
+  React.useEffect(() => {
     return () => {
       unregisterFocusable.current?.()
     }
@@ -62,24 +58,4 @@ export function useFocusable({
       onChangeText?.(value)
     }),
   }
-}
-
-export function focusableInputHOC<A extends TamaguiComponent>(Component: A): A {
-  return Component.styleable((props: FocusableProps, ref) => {
-    const isInput = Component.staticConfig?.isInput
-    const { ref: combinedRef, onChangeText } = useFocusable({
-      ref,
-      props,
-      isInput,
-    })
-    const finalProps = isInput
-      ? {
-          ...props,
-          onChangeText,
-        }
-      : props
-
-    // @ts-expect-error
-    return <Component ref={combinedRef} {...finalProps} />
-  }) as any
 }

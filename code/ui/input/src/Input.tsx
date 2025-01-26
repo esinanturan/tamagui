@@ -1,6 +1,8 @@
+import React, { type HTMLInputTypeAttribute, type HTMLAttributes } from 'react'
 import { View, styled, useComposedRefs, useEvent, useTheme } from '@tamagui/core'
 import { registerFocusable } from '@tamagui/focusable'
-import React, { useEffect } from 'react'
+import type { InputModeOptions } from 'react-native'
+
 import { styledBody } from './shared'
 import type { InputProps } from './types'
 const StyledInput = styled(View, styledBody[0], styledBody[1])
@@ -75,7 +77,7 @@ export const Input = StyledInput.styleable<InputProps>((inProps, forwardedRef) =
     } as any)
   })
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (onSelectionChange) {
       ref.current?.addEventListener('selectionchange', _onSelectionChange)
       return () => {
@@ -84,7 +86,7 @@ export const Input = StyledInput.styleable<InputProps>((inProps, forwardedRef) =
     }
   }, [])
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (selection) {
       ref.current?.setSelectionRange(selection.start || null, selection.end || null)
     }
@@ -92,11 +94,51 @@ export const Input = StyledInput.styleable<InputProps>((inProps, forwardedRef) =
 
   const finalProps = {
     ...rest,
-    inputMode,
     disabled,
     caretColor,
     id,
     enterKeyHint,
+    ...(process.env.TAMAGUI_TARGET === 'web'
+      ? {
+          type: (() => {
+            if (secureTextEntry) return 'password'
+            switch (keyboardType) {
+              case 'number-pad':
+              case 'numeric':
+                return 'number'
+              case 'email-address':
+                return 'email'
+              case 'phone-pad':
+                return 'tel'
+              case 'url':
+                return 'url'
+              default:
+                return 'text'
+            }
+          })() satisfies HTMLInputTypeAttribute,
+          inputMode: (() => {
+            switch (keyboardType) {
+              case 'number-pad':
+              case 'numeric':
+                return 'numeric'
+              case 'decimal-pad':
+                return 'decimal'
+              case 'email-address':
+                return 'email'
+              case 'phone-pad':
+                return 'tel'
+              case 'url':
+                return 'url'
+              default:
+                return undefined
+            }
+          })() satisfies HTMLAttributes<HTMLInputElement>['inputMode'],
+        }
+      : {
+          keyboardType,
+          secureTextEntry,
+          inputMode,
+        }),
     style: {
       ...(rest.style as any),
       ...(placeholderTextColor && {
@@ -109,7 +151,7 @@ export const Input = StyledInput.styleable<InputProps>((inProps, forwardedRef) =
     },
   } as any
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!id) return
     if (disabled) return
 
@@ -136,6 +178,7 @@ export const Input = StyledInput.styleable<InputProps>((inProps, forwardedRef) =
       `}
         </style>
       )}
+
       <StyledInput ref={composedRefs} {...finalProps} />
     </>
   )

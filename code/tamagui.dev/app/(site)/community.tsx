@@ -1,4 +1,3 @@
-import { authors } from '~/data/authors'
 // import { getAllFrontmatter } from '@lib/mdx'
 import { useTint } from '@tamagui/logo'
 import { ChevronRight } from '@tamagui/lucide-icons'
@@ -18,16 +17,17 @@ import {
   YStack,
 } from 'tamagui'
 
+import type { Href } from 'one'
 import { Card } from '~/components/Card'
 import { ContainerLarge } from '~/components/Containers'
 import { FlatBubbleCard } from '~/components/FlatBubbleCard'
-import { Link } from '~/components/Link'
-import { SocialLinksRow } from '~/features/site/home/SocialLinksRow'
-import { GithubIcon } from '~/features/icons/GithubIcon'
-import { ThemeNameEffect } from '~/features/site/theme/ThemeNameEffect'
 import { HeadInfo } from '~/components/HeadInfo'
+import { Link } from '~/components/Link'
+import { GithubIcon } from '~/features/icons/GithubIcon'
+import { SocialLinksRow } from '~/features/site/home/SocialLinksRow'
+import { ThemeNameEffect } from '~/features/site/theme/ThemeNameEffect'
 
-export default function Community({ frontmatters }) {
+export default function Community() {
   return (
     <CommunityLayout>
       <ThemeNameEffect />
@@ -111,7 +111,7 @@ export default function Community({ frontmatters }) {
               Figma Design Kit
             </H2>
             <Spacer size="$6" />
-            <YStack ai="center" gap>
+            <YStack ai="center" gap="$4">
               <Link href="https://www.figma.com/community/file/1326593766534421119">
                 <YStack
                   target="_blank"
@@ -145,7 +145,7 @@ export default function Community({ frontmatters }) {
 
         <Spacer />
 
-        <FlatBubbleCard bw={0.5} gap>
+        <FlatBubbleCard bw={0.5} gap="$4">
           <H3 id="starter-repos" ta="center">
             Starter repos & Guides
           </H3>
@@ -225,15 +225,6 @@ export default function Community({ frontmatters }) {
             imageWidth={250}
             imageHeight={250}
           />
-
-          <GoldSponsor
-            name="Medbill AI"
-            bg="#888"
-            link="https://www.medbill.ai"
-            image="/sponsors/medbill-ai.png"
-            imageWidth={800 * 0.3}
-            imageHeight={173 * 0.3}
-          />
         </XStack>
 
         <FlatBubbleCard bw={0}>
@@ -243,6 +234,14 @@ export default function Community({ frontmatters }) {
         </FlatBubbleCard>
 
         <XStack gap="$4" jc="center" ai="center" flexWrap="wrap">
+          <GoldSponsor
+            name="Medbill AI"
+            bg="#888"
+            link="https://www.medbill.ai"
+            image="/sponsors/medbill-ai.png"
+            imageWidth={150}
+            imageHeight={150}
+          />
           <GoldSponsor
             name="Appfolio"
             link="https://www.appfolio.com/"
@@ -332,14 +331,11 @@ export default function Community({ frontmatters }) {
         </FlatBubbleCard>
 
         <XStack space flexWrap="wrap">
-          <IndividualSponsor
-            name="@barelyreaper"
-            link="https://twitter.com/barelyreaper"
-          />
-          <IndividualSponsor name="@pontusab" link="https://twitter.com/pontusab" />
-          <IndividualSponsor name="@AntelaBrais" link="https://twitter.com/AntelaBrais" />
-          <IndividualSponsor name="Hirbod" link="https://twitter.com/nightstomp" />
-          <IndividualSponsor name="Dimension" link="https://twitter.com/joindimension" />
+          <IndividualSponsor name="@barelyreaper" link="https://x.com/barelyreaper" />
+          <IndividualSponsor name="@pontusab" link="https://x.com/pontusab" />
+          <IndividualSponsor name="@AntelaBrais" link="https://x.com/AntelaBrais" />
+          <IndividualSponsor name="Hirbod" link="https://x.com/nightstomp" />
+          <IndividualSponsor name="Dimension" link="https://x.com/joindimension" />
         </XStack>
       </ContainerLarge>
 
@@ -353,7 +349,7 @@ const StarterRepoCard = ({
   name,
   url,
 }: {
-  url: string
+  url: Href
   name: string
   author: string
 }) => {
@@ -364,7 +360,7 @@ const StarterRepoCard = ({
       maw={300}
       space="$2"
       tag="a"
-      href={url}
+      href={url as string}
       target="_blank"
       p="$5"
       jc="space-between"
@@ -384,7 +380,7 @@ const StarterRepoCard = ({
 
 function GoldSponsor(props: {
   name: string
-  link: string
+  link: Href
   image: string
   imageWidth: number
   imageHeight: number
@@ -425,7 +421,7 @@ function IndividualSponsor(props: { name: string; link: string }) {
     <FlatBubbleCard flat mb="$4">
       <YStack maxWidth="100%" fs={0} als="center">
         <XStack gap="$4" $sm={{ flexDirection: 'column' }}>
-          <Link href={props.link} target="_blank">
+          <Link href={props.link as any} target="_blank">
             <YStack
               cursor="pointer"
               p="$4"
@@ -447,7 +443,11 @@ function IndividualSponsor(props: { name: string; link: string }) {
 
 function CommunityLayout({ children }: { children: any }) {
   const { tint } = useTint()
-  return <YStack theme={tint as any}>{useMemo(() => children, [children])}</YStack>
+  return (
+    <YStack debug="verbose" theme={tint as any}>
+      {useMemo(() => children, [children])}
+    </YStack>
+  )
 }
 
 // export function getStaticProps() {

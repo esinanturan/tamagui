@@ -1,6 +1,6 @@
 // adapted from radix-ui popper
 import { useComposedRefs } from '@tamagui/compose-refs'
-import { isAndroid, isWeb, useIsomorphicLayoutEffect } from '@tamagui/constants'
+import { useIsomorphicLayoutEffect } from '@tamagui/constants'
 import type { ScopedProps, SizeTokens, StackProps } from '@tamagui/core'
 import {
   Stack,
@@ -8,7 +8,6 @@ import {
   createStyledContext,
   getVariableValue,
   styled,
-  useDidFinishSSR,
   useProps,
 } from '@tamagui/core'
 import type {
@@ -30,6 +29,7 @@ import {
 import { getSpace } from '@tamagui/get-token'
 import type { SizableStackProps, YStackProps } from '@tamagui/stacks'
 import { ThemeableStack, YStack } from '@tamagui/stacks'
+import { startTransition } from '@tamagui/start-transition'
 import * as React from 'react'
 import type { View } from 'react-native'
 import { Keyboard, useWindowDimensions } from 'react-native'
@@ -42,7 +42,6 @@ type FlipProps = typeof flip extends (options: infer Opts) => void ? Opts : neve
  * -----------------------------------------------------------------------------------------------*/
 
 export type PopperContextValue = UseFloatingReturn & {
-  isMounted: boolean
   size?: SizeTokens
   placement?: Placement
   arrowRef: any
@@ -108,7 +107,6 @@ export function Popper(props: ScopedPopperProps<PopperProps>) {
     __scopePopper,
   } = props
 
-  const isMounted = useDidFinishSSR()
   const [arrowEl, setArrow] = React.useState<any>(null)
   const [arrowSize, setArrowSize] = React.useState(0)
   const offsetOptions = offset ?? arrowSize
@@ -117,8 +115,9 @@ export function Popper(props: ScopedPopperProps<PopperProps>) {
     strategy,
     placement,
     sameScrollView: false, // this only takes effect on native
+    whileElementsMounted: autoUpdate,
     platform:
-      disableRTL ?? setupOptions.disableRTL
+      (disableRTL ?? setupOptions.disableRTL)
         ? {
             ...platform,
             isRTL(element) {
@@ -137,26 +136,7 @@ export function Popper(props: ScopedPopperProps<PopperProps>) {
     ].filter(Boolean),
   })
 
-  const {
-    refs,
-    middlewareData,
-    // @ts-expect-error this comes from Tooltip for example
-    open,
-  } = floating
-
-  if (process.env.TAMAGUI_TARGET === 'web') {
-    useIsomorphicLayoutEffect(() => {
-      if (!open) return
-      if (!(refs.reference.current && refs.floating.current)) {
-        return
-      }
-
-      floating.update()
-
-      // Only call this when the floating element is rendered
-      return autoUpdate(refs.reference.current, refs.floating.current, floating.update)
-    }, [open, floating.update, refs.floating, refs.reference])
-  }
+  const { middlewareData } = floating
 
   if (process.env.TAMAGUI_TARGET === 'native') {
     // On Native there's no autoupdate so we call update() when necessary
@@ -168,12 +148,12 @@ export function Popper(props: ScopedPopperProps<PopperProps>) {
     const [keyboardOpen, setKeyboardOpen] = React.useState(false)
     React.useEffect(() => {
       const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
-        React.startTransition(() => {
+        startTransition(() => {
           setKeyboardOpen(true)
         })
       })
       const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
-        React.startTransition(() => {
+        startTransition(() => {
           setKeyboardOpen(false)
         })
       })
@@ -194,7 +174,6 @@ export function Popper(props: ScopedPopperProps<PopperProps>) {
     arrowRef: setArrow,
     arrowStyle: middlewareData.arrow,
     onArrowSize: setArrowSize,
-    isMounted,
     scope: __scopePopper,
     hasFloating: middlewareData.checkFloating?.hasFloating,
     ...floating,
@@ -287,35 +266,9 @@ export const PopperContent = React.forwardRef<
   ScopedPopperProps<PopperContentProps>
 >(function PopperContent(props: ScopedPopperProps<PopperContentProps>, forwardedRef) {
   const { __scopePopper, enableAnimationForPositionChange, ...rest } = props
-  const {
-    strategy,
-    placement,
-    refs,
-    x,
-    y,
-    getFloatingProps,
-    size,
-    isMounted,
-    update,
-    floatingStyles,
-    hasFloating,
-  } = usePopperContext(__scopePopper)
+  const { strategy, placement, refs, x, y, getFloatingProps, size } =
+    usePopperContext(__scopePopper)
   const contentRefs = useComposedRefs<any>(refs.setFloating, forwardedRef)
-
-  let finalHasFloatingValue = false
-  if (isAndroid) {
-    const initialRender = React.useRef(true)
-    const finalHasFloating = React.useRef(false)
-
-    if (hasFloating === false) {
-      initialRender.current = false
-    }
-
-    if (!initialRender.current) {
-      finalHasFloating.current = hasFloating
-    }
-    finalHasFloatingValue = finalHasFloating.current
-  }
 
   const contents = React.useMemo(() => {
     return (
@@ -332,34 +285,14 @@ export const PopperContent = React.forwardRef<
 
   const [needsMeasure, setNeedsMeasure] = React.useState(true)
   React.useEffect(() => {
+    if (!enableAnimationForPositionChange) return
     if (x || y) {
       setNeedsMeasure(false)
     }
-  }, [x, y])
-
-  useIsomorphicLayoutEffect(() => {
-    if (isMounted) {
-      update()
-    }
-  }, [isMounted])
+  }, [enableAnimationForPositionChange, x, y])
 
   // default to not showing if positioned at 0, 0
   let show = true
-
-  if (isAndroid) {
-    const [show_, setShow] = React.useState(false)
-    show = show_
-    React.useEffect(() => {
-      if (finalHasFloatingValue) {
-        setShow(true)
-      }
-    }, [finalHasFloatingValue, x, y])
-  }
-
-  // all poppers hidden on ssr by default
-  if (!isMounted) {
-    return null
-  }
 
   const frameProps = {
     ref: contentRefs,
@@ -379,7 +312,14 @@ export const PopperContent = React.forwardRef<
 
   // outer frame because we explicitly don't want animation to apply to this
   return (
-    <Stack {...(getFloatingProps ? getFloatingProps(frameProps) : frameProps)}>
+    <Stack
+      {...(getFloatingProps ? getFloatingProps(frameProps) : frameProps)}
+      {...(x === 0 && y === 0
+        ? {
+            opacity: 0,
+          }
+        : {})}
+    >
       {contents}
     </Stack>
   )

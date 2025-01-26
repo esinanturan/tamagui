@@ -1,9 +1,8 @@
 import { ThemeTint } from '@tamagui/logo'
-import { getAllFrontmatter, getAllVersionsFromPath, getMDXBySlug } from '@tamagui/mdx'
 import { getMDXComponent } from 'mdx-bundler/client'
-import React from 'react'
-import type { LoaderProps } from 'vxs'
-import { useLoader } from 'vxs'
+import React, { memo } from 'react'
+import type { LoaderProps } from 'one'
+import { useLoader } from 'one'
 import { HeadInfo } from '~/components/HeadInfo'
 import { DocsQuickNav } from '~/features/docs/DocsQuickNav'
 import { MDXProvider } from '~/features/docs/MDXProvider'
@@ -13,6 +12,7 @@ import { components } from '~/features/mdx/MDXComponents'
 import { getOgUrl } from '~/features/site/getOgUrl'
 
 export async function generateStaticParams() {
+  const { getAllFrontmatter } = await import('@tamagui/mdx-2')
   const frontmatters = getAllFrontmatter('data/docs/components')
   const paths = frontmatters.map((frontmatter) => {
     return {
@@ -34,6 +34,8 @@ export async function generateStaticParams() {
 }
 
 export async function loader(props: LoaderProps) {
+  const { getMDXBySlug, getAllVersionsFromPath } = await import('@tamagui/mdx-2')
+
   const { frontmatter, code } = await getMDXBySlug(
     'data/docs/components',
     props.params.subpath
@@ -53,7 +55,6 @@ export async function loader(props: LoaderProps) {
 export default function DocComponentsPage() {
   const { frontmatter, code } = useLoader(loader)
   const Component = React.useMemo(() => getMDXComponent(code), [code])
-  const isTinted = useIsDocsTinted()
 
   // useEffect(() => {
   //   const url = new URL(location.href)
@@ -93,14 +94,19 @@ export default function DocComponentsPage() {
         />
       )} */}
       <MDXProvider frontmatter={frontmatter}>
-        <ThemeTint disable={!isTinted}>
+        <DocsThemeTint>
           <MDXTabs id="type" defaultValue="styled">
             <Component components={components as any} />
           </MDXTabs>
-        </ThemeTint>
+        </DocsThemeTint>
       </MDXProvider>
 
       <DocsQuickNav key={frontmatter.slug} />
     </>
   )
 }
+
+const DocsThemeTint = memo(({ children }: { children: any }) => {
+  const isTinted = useIsDocsTinted()
+  return <ThemeTint disable={!isTinted}>{children}</ThemeTint>
+})

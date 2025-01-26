@@ -1,4 +1,3 @@
 import type { IconProps } from '@tamagui/helpers-icon';
-import React from 'react';
-export declare const SquareAsterisk: React.NamedExoticComponent<IconProps>;
+export declare const SquareAsterisk: import("react").NamedExoticComponent<IconProps>;
 //# sourceMappingURL=square-asterisk.d.ts.map

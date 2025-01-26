@@ -5,24 +5,26 @@ export declare const useConfiguration: () => {
     disableSSR?: boolean;
     inText: boolean;
     language: import("../views/FontLanguage.types").LanguageContextType | null;
-    unset?: import("..").BaseStyleProps;
+    setParentFocusState: ((next?: Partial<import("..").TamaguiComponentState> | undefined) => void) | null;
+    unset?: import("..").BaseStyleProps | undefined;
     reactNative?: any;
-    defaultFont?: string;
-    selectionStyles?: (theme: Record<string, string>) => null | {
+    defaultFont?: string | undefined;
+    selectionStyles?: ((theme: Record<string, string>) => null | {
         backgroundColor?: any;
         color?: any;
-    };
-    disableRootThemeClass?: boolean;
-    defaultProps?: Record<string, any> & {
+    }) | undefined;
+    disableRootThemeClass?: boolean | undefined;
+    defaultProps?: (Record<string, any> & {
         Stack?: import("..").StackProps;
         Text?: import("..").TextProps;
         Spacer?: import("..").SpacerProps;
-    };
-    mediaQueryDefaultActive?: Record<string, boolean>;
-    cssStyleSeparator?: string;
-    maxDarkLightNesting?: number;
-    shouldAddPrefersColorThemes?: boolean;
-    themeClassNameOnRoot?: boolean;
+    }) | undefined;
+    mediaQueryDefaultActive?: Record<string, boolean> | undefined;
+    cssStyleSeparator?: string | undefined;
+    maxDarkLightNesting?: number | undefined;
+    shouldAddPrefersColorThemes?: boolean | undefined;
+    themeClassNameOnRoot?: boolean | undefined;
+    onlyAllowShorthands?: boolean | undefined;
     fonts: {
         [x: string]: import("..").GenericFont<string | number | symbol>;
     };
@@ -54,79 +56,58 @@ export declare const useConfiguration: () => {
             [key: string]: string | number;
         };
     };
-    onlyAllowShorthands: boolean | undefined;
     settings: import("..").GenericTamaguiSettings & Omit<import("..").GenericTamaguiSettings, keyof import("..").GenericTamaguiSettings>;
     tokens: Omit<{
         [x: string]: {
             [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
         };
-        color: {
+        color?: {
             [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
-        space: {
+        } | undefined;
+        space?: {
             [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
-        size: {
+        } | undefined;
+        size?: {
             [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
-        radius: {
+        } | undefined;
+        radius?: {
             [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
-        zIndex: {
+        } | undefined;
+        zIndex?: {
             [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
+        } | undefined;
     }, import("..").TokenCategories> & {
-        color: {
-            [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
-        space: {
-            [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
-        size: {
-            [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
-        radius: {
-            [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
-        zIndex: {
-            [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
+        color: {};
+        space: {};
+        size: {};
+        radius: {};
+        zIndex: {};
     };
     tokensParsed: Omit<{
         [x: string]: {
             [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
         };
-        color: {
+        color?: {
             [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
-        space: {
+        } | undefined;
+        space?: {
             [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
-        size: {
+        } | undefined;
+        size?: {
             [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
-        radius: {
+        } | undefined;
+        radius?: {
             [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
-        zIndex: {
+        } | undefined;
+        zIndex?: {
             [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
+        } | undefined;
     }, import("..").TokenCategories> & {
-        color: {
-            [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
-        space: {
-            [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
-        size: {
-            [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
-        radius: {
-            [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
-        zIndex: {
-            [x: string]: import("..").Variable<any> | import("..").Variable<string> | import("..").Variable<number> | import("..").Variable<import("..").VariableValGeneric>;
-        };
+        color: {};
+        space: {};
+        size: {};
+        radius: {};
+        zIndex: {};
     };
     themeConfig: any;
     fontsParsed: import("..").GenericFonts;
@@ -136,5 +117,6 @@ export declare const useConfiguration: () => {
     inverseShorthands: Record<string, string>;
     fontSizeTokens: Set<string>;
     specificTokens: Record<string, import("..").Variable>;
+    defaultFontToken: `${string}`;
 };
 //# sourceMappingURL=useConfiguration.d.ts.map

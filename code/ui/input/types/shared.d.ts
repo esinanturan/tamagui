@@ -136,6 +136,7 @@ export declare const styledBody: ({
         fontSize: boolean;
         fontStyle: boolean;
         fontWeight: boolean;
+        fontVariant: boolean;
         letterSpacing: boolean;
         lineHeight: boolean;
         textTransform: boolean;
@@ -158,14 +159,12 @@ export declare const styledBody: ({
         borderLeftStyle?: boolean | undefined;
         borderRightStyle?: boolean | undefined;
         borderTopStyle?: boolean | undefined;
-        boxShadow?: boolean | undefined;
         boxSizing?: boolean | undefined;
         caretColor?: boolean | undefined;
         clipPath?: boolean | undefined;
         contain?: boolean | undefined;
         containerType?: boolean | undefined;
         content?: boolean | undefined;
-        filter?: boolean | undefined;
         float?: boolean | undefined;
         mask?: boolean | undefined;
         maskBorder?: boolean | undefined;
@@ -199,6 +198,8 @@ export declare const styledBody: ({
         textEmphasis?: boolean | undefined;
         touchAction?: boolean | undefined;
         transformStyle?: boolean | undefined;
+        boxShadow: boolean;
+        filter: boolean;
         animationIterationCount: boolean;
         aspectRatio: boolean;
         borderImageOutset: boolean;
@@ -365,13 +366,6 @@ export declare const styledBody: ({
         direction: boolean;
         shadowOffset: boolean;
         shadowRadius: boolean;
-        focusVisibleStyle?: boolean | undefined;
-        enterStyle: boolean;
-        exitStyle: boolean;
-        hoverStyle: boolean;
-        pressStyle: boolean;
-        focusStyle: boolean;
-        disabledStyle: boolean;
     };
     name?: undefined;
     tag?: undefined;

@@ -1,8 +1,6 @@
 import { isAndroid } from '@tamagui/constants'
 import { tokenCategories } from '@tamagui/helpers'
-
 import { getConfig } from '../config'
-import { isDevTools } from '../constants/isDevTools'
 import type { Variable } from '../createVariable'
 import { getVariableValue, isVariable } from '../createVariable'
 import type {
@@ -14,13 +12,17 @@ import type {
   VariantSpreadFunction,
 } from '../types'
 import { expandStyle } from './expandStyle'
-import { normalizeStyle } from './normalizeStyle'
 import { getFontsForLanguage, getVariantExtras } from './getVariantExtras'
 import { isObj } from './isObj'
+import { normalizeStyle } from './normalizeStyle'
 import { pseudoDescriptors } from './pseudoDescriptors'
 import { skipProps } from './skipProps'
 
-export const propMapper: PropMapper = (key, value, styleStateIn, subPropsIn) => {
+export const propMapper: PropMapper = (key, value, styleState, disabled, map) => {
+  if (disabled) {
+    return map(key, value)
+  }
+
   lastFontFamilyToken = null
 
   if (!(process.env.TAMAGUI_TARGET === 'native' && isAndroid)) {
@@ -28,52 +30,26 @@ export const propMapper: PropMapper = (key, value, styleStateIn, subPropsIn) => 
     if (key === 'elevationAndroid') return
   }
 
-  const { conf, styleProps, fontFamily, staticConfig } = styleStateIn
+  const { conf, styleProps, staticConfig } = styleState
 
   if (value === 'unset') {
     const unsetVal = conf.unset?.[key]
     if (unsetVal != null) {
       value = unsetVal
     } else {
-      // if no unset found, return nothing
+      // if no unset found, do nothing
       return
     }
   }
 
-  // we use this for the sub-props like pseudos so we need to overwrite the "props" in styleState
-  // fallbackProps is awkward thanks to static
-  // also we need to override the props here because subStyles pass in a sub-style props object
-  const subProps = styleProps.fallbackProps || subPropsIn
-  const styleState = subProps
-    ? new Proxy(styleStateIn, {
-        get(_, k) {
-          return k === 'curProps' ? subProps : Reflect.get(_, k)
-        },
-      })
-    : styleStateIn
-
   const { variants } = staticConfig
-
-  if (
-    process.env.NODE_ENV === 'development' &&
-    fontFamily &&
-    fontFamily[0] === '$' &&
-    !(fontFamily in conf.fontsParsed)
-  ) {
-    console.warn(
-      `Warning: no fontFamily "${fontFamily}" found in config: ${Object.keys(
-        conf.fontsParsed
-      ).join(', ')}`
-    )
-  }
 
   if (!styleProps.noExpand) {
     if (variants && key in variants) {
-      styleState.curProps[key] = value
-
       const variantValue = resolveVariants(key, value, styleProps, styleState, '')
       if (variantValue) {
-        return variantValue
+        variantValue.forEach(([key, value]) => map(key, value))
+        return
       }
     }
   }
@@ -85,7 +61,7 @@ export const propMapper: PropMapper = (key, value, styleStateIn, subPropsIn) => 
     }
   }
 
-  if (value) {
+  if (value != null) {
     if (value[0] === '$') {
       value = getTokenForKey(key, value, styleProps.resolveValues, styleState)
     } else if (isVariable(value)) {
@@ -94,13 +70,21 @@ export const propMapper: PropMapper = (key, value, styleStateIn, subPropsIn) => 
   }
 
   if (value != null) {
-    const result = (styleProps.noExpand ? null : expandStyle(key, value)) || [
-      [key, value],
-    ]
     if (key === 'fontFamily' && lastFontFamilyToken) {
-      fontFamilyCache.set(result, lastFontFamilyToken)
+      styleState.fontFamily = lastFontFamilyToken
     }
-    return result
+
+    const expanded = styleProps.noExpand ? null : expandStyle(key, value)
+
+    if (expanded) {
+      const max = expanded.length
+      for (let i = 0; i < max; i++) {
+        const [nkey, nvalue] = expanded[i]
+        map(nkey, nvalue)
+      }
+    } else {
+      map(key, value)
+    }
   }
 }
 
@@ -124,7 +108,6 @@ const resolveVariants: StyleResolver = (
       value,
       variantValue,
       variants,
-      curProps: { ...styleState.curProps },
     })
     console.groupEnd()
   }
@@ -149,7 +132,11 @@ const resolveVariants: StyleResolver = (
     const extras = getVariantExtras(styleState)
     variantValue = fn(value, extras)
 
-    if (process.env.NODE_ENV === 'development' && debug === 'verbose') {
+    if (
+      process.env.NODE_ENV === 'development' &&
+      debug === 'verbose' &&
+      process.env.TAMAGUI_TARGET !== 'native'
+    ) {
       console.groupCollapsed('   expanded functional variant', key)
       console.info({ fn, variantValue, extras })
       console.groupEnd()
@@ -189,7 +176,7 @@ const resolveVariants: StyleResolver = (
 
     // store any changed font family (only support variables for now)
     if (fontFamilyResult && fontFamilyResult[0] === '$') {
-      fontFamilyCache.set(next, getVariableValue(fontFamilyResult))
+      lastFontFamilyToken = getVariableValue(fontFamilyResult)
     }
 
     return next
@@ -222,9 +209,6 @@ const variableToFontNameCache = new WeakMap<Variable, string>()
 
 // special helper for special font family
 const fontFamilyCache = new WeakMap()
-export const getPropMappedFontFamily = (expanded?: any) => {
-  return expanded && fontFamilyCache.get(expanded)
-}
 
 const resolveTokensAndVariants: StyleResolver<Object> = (
   key, // we dont use key assume value is object instead
@@ -253,9 +237,6 @@ const resolveTokensAndVariants: StyleResolver<Object> = (
       res[subKey] = val
     } else {
       if (variants && subKey in variants) {
-        // if its a variant expanded, attach to curProps
-        styleState.curProps[subKey] = val
-
         // avoids infinite loop if variant is matching a style prop
         // eg: { variants: { flex: { true: { flex: 2 } } } }
         if (parentVariantKey && parentVariantKey === key) {
@@ -400,16 +381,13 @@ export const getTokenForKey = (
 
   if (theme && value in theme) {
     valOrVar = theme[value]
-    if (styleState.skipThemeTokenResolution && valOrVar?.val) {
-      if (process.env.NODE_ENV === 'development' && styleState.debug === 'verbose') {
-        console.info(
-          ` - keep original value: ${value} for ${key} due to enableFlattenThemeOnNative: true`
-        )
-      }
-      return value
-    }
     if (process.env.NODE_ENV === 'development' && styleState.debug === 'verbose') {
-      console.info(` - resolving ${key} to theme value ${value}: ${valOrVar?.val}`)
+      globalThis.tamaguiAvoidTracking = true
+      console.info(
+        ` - resolving ${key} to theme value ${value} resolveAs ${resolveAs}`,
+        valOrVar
+      )
+      globalThis.tamaguiAvoidTracking = false
     }
     hasSet = true
   } else {
@@ -431,13 +409,12 @@ export const getTokenForKey = (
         case 'lineHeight':
         case 'letterSpacing':
         case 'fontWeight': {
-          const defaultFont = conf.defaultFont || '$body'
-          const fam = fontFamily || defaultFont
+          const fam = fontFamily || conf.defaultFontToken
           if (fam) {
             const fontsParsed = context?.language
               ? getFontsForLanguage(conf.fontsParsed, context.language)
               : conf.fontsParsed
-            const font = fontsParsed[fam] || fontsParsed[defaultFont]
+            const font = fontsParsed[fam] || fontsParsed[conf.defaultFontToken]
             valOrVar = font?.[fontShorthand[key] || key]?.[value] || value
             hasSet = true
           }
@@ -467,7 +444,9 @@ export const getTokenForKey = (
   if (hasSet) {
     const out = resolveVariableValue(key, valOrVar, resolveAs)
     if (process.env.NODE_ENV === 'development' && styleState.debug === 'verbose') {
+      globalThis.tamaguiAvoidTracking = true
       console.info(`resolved`, resolveAs, valOrVar, out)
+      globalThis.tamaguiAvoidTracking = false
     }
     return out
   }
@@ -484,18 +463,22 @@ function resolveVariableValue(
   valOrVar: Variable | any,
   resolveValues?: ResolveVariableAs
 ) {
-  if (resolveValues === 'none') return valOrVar
+  if (resolveValues === 'none') {
+    return valOrVar
+  }
   if (isVariable(valOrVar)) {
     if (resolveValues === 'value') {
       return valOrVar.val
     }
+
     // @ts-expect-error this is fine until we can type better
     const get = valOrVar?.get
 
     // shadowColor doesn't support dynamic style
     if (process.env.TAMAGUI_TARGET !== 'native' || key !== 'shadowColor') {
       if (typeof get === 'function') {
-        return get(resolveValues === 'web' ? 'web' : undefined)
+        const resolveDynamicFor = resolveValues === 'web' ? 'web' : undefined
+        return get(resolveDynamicFor)
       }
     }
 

@@ -1,24 +1,6 @@
-import React, { memo } from 'react'
-import PropTypes from 'prop-types'
+import { memo } from 'react'
 import type { IconProps } from '@tamagui/helpers-icon'
-import {
-  Svg,
-  Circle as _Circle,
-  Ellipse,
-  G,
-  LinearGradient,
-  RadialGradient,
-  Line,
-  Path,
-  Polygon,
-  Polyline,
-  Rect,
-  Symbol,
-  Text as _Text,
-  Use,
-  Defs,
-  Stop,
-} from 'react-native-svg'
+import { Svg, Path } from 'react-native-svg'
 import { themed } from '@tamagui/helpers-icon'
 
 const Icon = (props) => {
@@ -41,9 +23,9 @@ const Icon = (props) => {
       <Path d="M7 8v3" stroke={color} />
       <Path d="M12 8v3" stroke={color} />
       <Path d="M17 8v3" stroke={color} />
-      <Path d="M7 4h0.01" stroke={color} />
-      <Path d="M12 4h0.01" stroke={color} />
-      <Path d="M17 4h0.01" stroke={color} />
+      <Path d="M7 4h.01" stroke={color} />
+      <Path d="M12 4h.01" stroke={color} />
+      <Path d="M17 4h.01" stroke={color} />
     </Svg>
   )
 }

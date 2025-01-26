@@ -2,7 +2,7 @@
 title: How to Build a Button
 description:
   Learn how to create a powerful yet simple API for a button with Tamagui and
-  composable components
+  compound components
 hero: HowToBuildAButton
 demoName: BuildAButton
 ---
@@ -23,24 +23,24 @@ between sub-components' positions, spacing and style.
 All of this ideally delivered in a simple API that still allows complete
 customization.
 
-Tamagui allows for building a button with "composable components," a concept
+Tamagui allows for building a button with "compound components", a concept
 popularized by [Radix](https://www.radix-ui.com/). With the introduction of
 `createStyledContext` in version 1.28 this pattern has become especially easy,
-so we wrote this guide to show off building more advanced composable component
+so we wrote this guide to show off building more advanced compound component
 APIs. While this guide covers a button, this is applicable to many types of UI
 components.
 
-So what are composable components? Simply, it's when you have, say, a
+So what are compound components? Simply, it's when you have, say, a
 `<Button />` that wants children `<Button.Text />` and `<Button.Icon />`.
 
 And why do they exist? Well, we'll explain that and more in this guide.
 
 Keep in mind that this is an advanced use case. Usually you can just grab
 Tamagui components off the shelf and use them with inline styles. But sometimes
-you need components that want for multiple related children.
+you need components that want multiple related children.
 
 <Notice>
-  This guide is more of a primer on designing composable components, teaching
+  This guide is more of a primer on designing compound components, teaching
   advanced concepts that aren't necessary if you just want to build your app. If
   you just want a simple, ready to use Button, you can use the [Tamagui
   Button](/docs/components/button) itself directly.
@@ -63,7 +63,7 @@ import {
   useTheme,
   withStaticProperties,
 } from '@tamagui/web'
-import { cloneElement, useContext } from 'react'
+import { cloneElement, isValidElement, useContext } from 'react'
 
 export const ButtonContext = createStyledContext({
   size: '$md' as SizeTokens,
@@ -130,10 +130,10 @@ const ButtonIcon = (props: { children: any }) => {
     shift: -2,
   })
   const theme = useTheme()
-  return cloneElement(props.children, {
+  return isValidElement(props.children) ? cloneElement(props.children, {
     size: smaller.val * 0.5,
     color: theme.color.get(),
-  })
+  }) : null
 }
 
 export const Button = withStaticProperties(ButtonFrame, {
@@ -170,12 +170,12 @@ export default () => (
 ```
 
 This may only be a ~hundred lines of code, but there's a lot to take in. And
-behind the scenes, there's a lot going on behind to make this possible.
+behind the scenes, there's a lot going on to make this possible.
 
 ### From the Start
 
 This guide will build up to this complete example from the ground up, which
-should help explain both why many pattern exist, and also how they work.
+should help explain both why many patterns exist, and also how they work.
 
 We start with the assumption that we have a design system set up with a tokens
 that use keys `sm`, `md`, and `lg` and a few themes:
@@ -385,6 +385,11 @@ export const ButtonText = styled(Text, {
 })
 ```
 
+<Notice>
+  The `...size` spread variant `name` defaults to implicit any. Update
+  `tsconfig.json`'s `"noImplicitAny": false` to avoid TypeScript errors.
+</Notice>
+
 So now we can pass in our new `size` property:
 
 ```tsx
@@ -464,7 +469,7 @@ The problem with abstracting your Button into a single component is that the
 internals are surprisingly flexible, and ideally they want to each be styled
 independently.
 
-Abstracting the tree structure that's output is our problem. The composable
+Abstracting the tree structure that's output is our problem. The compound
 component API gives us full control - we can customize every piece, even using
 the existing `styled` function to re-style each piece, before re-exporting it
 again:
@@ -498,7 +503,7 @@ Not to mention by staying with the `styled` world, the Tamagui optimizing
 compiler confidently flattens our Button components down to ridiculously fast
 DOM output on the web, and pulls out all styles from the render loop on native.
 
-So we want our composable component API both for ergonomics and for performance,
+So we want our compound component API both for ergonomics and for performance,
 but we need some way to thread our `size` property down from the parent frame to
 the inner sub-components.
 
@@ -507,7 +512,7 @@ the inner sub-components.
 In React this is typically what context is used for.
 
 Here's how we'd solve for size using context in plain-old React, while still
-keeping the composable API:
+keeping the compound API:
 
 ```tsx
 import { createContext } from 'react'
@@ -733,7 +738,7 @@ say changing out `children` + `cloneElement` for something like
 ### Conclusion
 
 We hope this has been helpful in explaining a variety of Tamagui features and
-some of the benefits of and ideas behind composable components.
+some of the benefits and ideas behind compound components.
 
 There's certainly further you can go in building out your Button, but we think
 that in under 150 lines of code you're getting a nearly ideal API, fully typed
@@ -743,7 +748,7 @@ If you are working on a smaller app, say one that shows only a few buttons at a
 time or with a small set of button variations, then abstracting your Button into
 a single functional Button component is totally fine.
 
-But we'd that encourage you to give the composable component API a try and see
+But we'd encourage you to give the compound component API a try and see
 how you like it.
 
 With the new Tamagui APIs, we look forward to never having to carefully add a

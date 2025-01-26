@@ -9,6 +9,7 @@ import { DemoScreen } from './features/demos/demo-screen'
 import { HomeScreen } from './features/home/screen'
 import { TestCasesScreen } from './features/testcases/screen'
 import { TestScreen } from './features/testcases/test-screen'
+import { ColorSchemeToggle } from './features/home/ColorSchemeListItem'
 
 const bentoScreenNames = Data.listingData.sections.map(({ sectionName }) => sectionName)
 
@@ -38,21 +39,27 @@ const BentoScreenContainer: FC<{ children: React.ReactNode; name: string }> = ({
   name,
 }) => {
   //NOTE: Components using Flatlist can't have a ScrollView wrapper. This breaks scrolling on Android.
-  if (['FlatGrid', 'ChatList'].includes(name)) {
+  if (
+    [
+      'FlatGrid',
+      'ChatList',
+      'List',
+      'IconTitleSwitch',
+      'IconTitleSwitch',
+      'AvatarsGrouped',
+      'RoundedAvatars',
+      'CircularAvatarsWithCustomIcons',
+      'RoundedAvatarsWithCustomIcons',
+    ].includes(name)
+  ) {
     return (
-      <View flex={1} minWidth="100%" p="$2" bg="$background">
+      <View p="$4" flex={1} bg="$background">
         {children}
       </View>
     )
   }
   return (
-    <ScrollView
-      flex={1}
-      minWidth="100%"
-      p="$2"
-      bg="$background"
-      keyboardShouldPersistTaps="always"
-    >
+    <ScrollView p="$4" flex={1} bg="$background" keyboardShouldPersistTaps="always">
       {children}
     </ScrollView>
   )
@@ -106,6 +113,7 @@ const bentoScreensPerElement = Object.entries(Components)
       </Stack.Screen>
     )
   })
+
 export function Navigation() {
   return (
     <Stack.Navigator initialRouteName="home">
@@ -142,6 +150,9 @@ export function Navigation() {
         component={TestScreen}
         options={{
           title: 'Test Case',
+          headerRight() {
+            return <ColorSchemeToggle />
+          },
         }}
       />
       <Stack.Screen

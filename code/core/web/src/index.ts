@@ -21,6 +21,8 @@ export type * from './interfaces/TamaguiComponentPropsBaseBase'
 export * from './interfaces/GetRef'
 
 export {
+  setConfig,
+  getSetting,
   setupDev,
   getConfig,
   getThemes,
@@ -29,6 +31,8 @@ export {
   getToken,
   getTokenValue,
 } from './config'
+
+export { setNonce } from './helpers/insertStyleRule'
 
 export * from './constants/constants'
 
@@ -59,12 +63,14 @@ export * from './helpers/pseudoDescriptors'
 export * from './helpers/themeable'
 export * from './helpers/themes'
 export * from './helpers/transformsToString'
+export * from './helpers/wrapStyleTags'
 
 export {
   configureMedia,
   mediaState,
   mediaKeyMatch,
   useMedia,
+  _disableMediaTouch,
   getMedia,
   mediaObjectToString,
   mediaQueryConfig,

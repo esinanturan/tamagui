@@ -1,8 +1,7 @@
-import type { ViewProps } from 'react-native'
-import { Button, Paragraph, Text, type ButtonProps } from 'tamagui'
-import { useLinkTo, type LinkProps as VXSLinkProps } from 'vxs'
+import { type ViewProps, Button, Paragraph, Text, type ButtonProps } from 'tamagui'
+import { useLinkTo, type LinkProps as OneLinkProps } from 'one'
 
-export type LinkProps = ViewProps & VXSLinkProps
+export type LinkProps = ViewProps & OneLinkProps<any>
 
 export const Link = ({ href, replace, asChild, ...props }: LinkProps) => {
   const linkProps = useLinkTo({ href: href as string, replace })
@@ -26,7 +25,7 @@ export const Link = ({ href, replace, asChild, ...props }: LinkProps) => {
 }
 
 export const ParagraphLink = ({
-  href = '',
+  href = '' as any,
   replace,
   onPress,
   children,
@@ -52,7 +51,7 @@ export type ButtonLinkProps = Pick<LinkProps, 'href' | 'replace' | 'target' | 'r
   ButtonProps
 
 export const ButtonLink = ({
-  href = '',
+  href = '' as any,
   rel,
   target,
   replace,

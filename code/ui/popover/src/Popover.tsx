@@ -1,19 +1,22 @@
 import '@tamagui/polyfill-dev'
 
 import type { UseHoverProps } from '@floating-ui/react'
-import { Adapt, useAdaptParent } from '@tamagui/adapt'
+import {
+  Adapt,
+  AdaptParent,
+  AdaptPortalContents,
+  ProvideAdaptContext,
+  useAdaptContext,
+  useAdaptIsActive,
+  type AdaptParentContextI,
+} from '@tamagui/adapt'
+
 import { Animate } from '@tamagui/animate'
 import { ResetPresence } from '@tamagui/animate-presence'
 import { hideOthers } from '@tamagui/aria-hidden'
 import { useComposedRefs } from '@tamagui/compose-refs'
 import { isWeb } from '@tamagui/constants'
-import type {
-  MediaQueryKey,
-  ScopedProps,
-  SizeTokens,
-  StackProps,
-  TamaguiElement,
-} from '@tamagui/core'
+import type { ScopedProps, SizeTokens, StackProps, TamaguiElement } from '@tamagui/core'
 import {
   Stack,
   Theme,
@@ -22,7 +25,6 @@ import {
   createStyledContext,
   useEvent,
   useGet,
-  useMedia,
   useThemeName,
 } from '@tamagui/core'
 import type { DismissableProps } from '@tamagui/dismissable'
@@ -45,7 +47,7 @@ import {
   PopperContext,
   usePopperContext,
 } from '@tamagui/popper'
-import { Portal, PortalHost, PortalItem } from '@tamagui/portal'
+import { Portal } from '@tamagui/portal'
 import type { RemoveScrollProps } from '@tamagui/remove-scroll'
 import { RemoveScroll } from '@tamagui/remove-scroll'
 import { Sheet, SheetController } from '@tamagui/sheet'
@@ -89,7 +91,6 @@ type PopoverContextValue = {
   onCustomAnchorAdd(): void
   onCustomAnchorRemove(): void
   size?: SizeTokens
-  sheetBreakpoint: any
   breakpointActive?: boolean
   keepChildrenMounted?: boolean
   anchorTo?: Rect
@@ -149,7 +150,6 @@ export const PopoverTrigger = React.forwardRef<
 
   const trigger = (
     <View
-      aria-haspopup="dialog"
       aria-expanded={context.open}
       // TODO not matching
       // aria-controls={context.contentId}
@@ -295,11 +295,14 @@ function PopoverRepropagateContext(props: {
   context: any
   popperContext: any
   scope: string
+  adaptContext: AdaptParentContextI
 }) {
   return (
     <PopperContext.Provider scope={props.scope} {...props.popperContext}>
       <PopoverContext.Provider {...props.context}>
-        {props.children}
+        <ProvideAdaptContext {...props.adaptContext}>
+          {props.children}
+        </ProvideAdaptContext>
       </PopoverContext.Provider>
     </PopperContext.Provider>
   )
@@ -311,6 +314,7 @@ function PopoverContentPortal(props: ScopedPopoverProps<PopoverContentTypeProps>
   const context = usePopoverContext(__scopePopover)
   const popperContext = usePopperContext(__scopePopover || POPOVER_SCOPE)
   const themeName = useThemeName()
+  const adaptContext = useAdaptContext()
 
   let contents = props.children
 
@@ -321,6 +325,7 @@ function PopoverContentPortal(props: ScopedPopoverProps<PopoverContentTypeProps>
         scope={__scopePopover || POPOVER_SCOPE}
         popperContext={popperContext}
         context={context}
+        adaptContext={adaptContext}
       >
         {props.children}
       </PopoverRepropagateContext>
@@ -415,6 +420,8 @@ const PopoverContentImpl = React.forwardRef<
     setIsFullyHidden?.(true)
   }, [setIsFullyHidden])
 
+  let contents = <ResetPresence>{children}</ResetPresence>
+
   if (context.breakpointActive) {
     // unwrap the PopoverScrollView if used, as it will use the SheetScrollView if that exists
     // TODO this should be disabled through context
@@ -427,21 +434,38 @@ const PopoverContentImpl = React.forwardRef<
       return child
     })
 
-    let content = <ResetPresence>{childrenWithoutScrollView}</ResetPresence>
-
-    if (Platform.OS === 'android' || Platform.OS === 'ios') {
-      content = (
+    return (
+      <AdaptPortalContents>
         <PopperContext.Provider
           scope={__scopePopover || POPOVER_SCOPE}
           {...popperContext}
         >
           {childrenWithoutScrollView}
         </PopperContext.Provider>
-      )
-    }
+      </AdaptPortalContents>
+    )
+  }
 
-    // doesn't show as popover yet on native, must use as sheet
-    return <PortalItem hostName={`${context.id}PopoverContents`}>{content}</PortalItem>
+  if (process.env.TAMAGUI_TARGET !== 'native') {
+    contents = (
+      <RemoveScroll
+        enabled={disableRemoveScroll ? false : open}
+        allowPinchZoom
+        // causes lots of bugs on touch web on site
+        removeScrollBar={false}
+        style={dspContentsStyle}
+      >
+        <FocusScope
+          loop
+          enabled={disableFocusScope ? false : open}
+          trapped={trapFocus}
+          onMountAutoFocus={onOpenAutoFocus}
+          onUnmountAutoFocus={onCloseAutoFocus}
+        >
+          <div style={dspContentsStyle}>{contents}</div>
+        </FocusScope>
+      </RemoveScroll>
+    )
   }
 
   // const handleDismiss = React.useCallback((event: GestureResponderEvent) =>{
@@ -473,25 +497,7 @@ const PopoverContentImpl = React.forwardRef<
         ref={forwardedRef}
         {...contentProps}
       >
-        <RemoveScroll
-          enabled={disableRemoveScroll ? false : open}
-          allowPinchZoom
-          // causes lots of bugs on touch web on site
-          removeScrollBar={false}
-          style={dspContentsStyle}
-        >
-          <ResetPresence>
-            <FocusScope
-              loop
-              enabled={disableFocusScope ? false : open}
-              trapped={trapFocus}
-              onMountAutoFocus={onOpenAutoFocus}
-              onUnmountAutoFocus={onCloseAutoFocus}
-            >
-              {isWeb ? <div style={dspContentsStyle}>{children}</div> : children}
-            </FocusScope>
-          </ResetPresence>
-        </RemoveScroll>
+        {contents}
       </PopperContent>
     </Animate>
   )
@@ -534,9 +540,8 @@ export type PopoverArrowProps = PopperArrowProps
 export const PopoverArrow = PopperArrow.styleable<PopperArrowExtraProps>(
   function PopoverArrow(props: ScopedPopoverProps<PopoverArrowProps>, forwardedRef) {
     const { __scopePopover, ...rest } = props
-    const context = usePopoverContext(__scopePopover)
-    const sheetActive = useSheetBreakpointActive(context.sheetBreakpoint)
-    if (sheetActive) {
+    const isAdapted = useAdaptIsActive()
+    if (isAdapted) {
       return null
     }
     return (
@@ -570,124 +575,14 @@ export type Popover = {
 }
 
 export const Popover = withStaticProperties(
-  React.forwardRef(
-    (props: ScopedPopoverProps<PopoverProps>, forwardedRef: React.Ref<Popover>) => {
-      const {
-        children,
-        open: openProp,
-        defaultOpen,
-        onOpenChange,
-        __scopePopover,
-        keepChildrenMounted,
-        hoverable,
-        disableFocus,
-        ...restProps
-      } = props
-
+  React.forwardRef<Popover, ScopedPopoverProps<PopoverProps>>(
+    function Popover(props, ref) {
       const id = React.useId()
-      const { when, AdaptProvider } = useAdaptParent({
-        Contents: React.useCallback(() => {
-          return <PortalHost name={`${id}PopoverContents`} />
-        }, []),
-      })
-
-      const sheetBreakpoint = when
-      const triggerRef = React.useRef<TamaguiElement>(null)
-      const [hasCustomAnchor, setHasCustomAnchor] = React.useState(false)
-      const viaRef = React.useRef()
-      const [open, setOpen] = useControllableState({
-        prop: openProp,
-        defaultProp: defaultOpen || false,
-        onChange: (val) => {
-          onOpenChange?.(val, viaRef.current)
-        },
-      })
-
-      const handleOpenChange = useEvent((val, via) => {
-        viaRef.current = via
-        setOpen(val)
-      })
-
-      const sheetActive = useSheetBreakpointActive(sheetBreakpoint)
-
-      const floatingContext = useFloatingContext({
-        open,
-        setOpen: handleOpenChange,
-        disable: sheetActive,
-        hoverable,
-        disableFocus: disableFocus,
-      }) as any
-
-      const [anchorTo, setAnchorToRaw] = React.useState<Rect>()
-
-      const setAnchorTo = createShallowSetState(
-        setAnchorToRaw as any
-      ) as typeof setAnchorToRaw
-
-      React.useImperativeHandle(forwardedRef, () => ({
-        anchorTo: setAnchorTo,
-        toggle: () => setOpen((prev) => !prev),
-        open: () => setOpen(true),
-        close: () => setOpen(false),
-        setOpen,
-      }))
-
-      // needs to be entirely memoized!
-      const popoverContext = {
-        id,
-        sheetBreakpoint,
-        contentId: React.useId(),
-        triggerRef,
-        open,
-        breakpointActive: sheetActive,
-        onOpenChange: handleOpenChange,
-        onOpenToggle: useEvent(() => {
-          if (open && sheetActive) {
-            return
-          }
-          setOpen(!open)
-        }),
-        hasCustomAnchor,
-        anchorTo,
-        onCustomAnchorAdd: React.useCallback(() => setHasCustomAnchor(true), []),
-        onCustomAnchorRemove: React.useCallback(() => setHasCustomAnchor(false), []),
-        keepChildrenMounted,
-      }
-
-      // // debug if changing too often
-      // if (process.env.NODE_ENV === 'development') {
-      //   Object.keys(popoverContext).forEach((key) => {
-      //     React.useEffect(
-      //       () => console.log(`changed`, key, popoverContext[key]),
-      //       [popoverContext[key]]
-      //     )
-      //   })
-      // }
-
-      const contents = (
-        <Popper
-          __scopePopper={__scopePopover || POPOVER_SCOPE}
-          stayInFrame
-          {...restProps}
-        >
-          <PopoverContext.Provider scope={__scopePopover} {...popoverContext}>
-            <PopoverSheetController onOpenChange={setOpen}>
-              {children}
-            </PopoverSheetController>
-          </PopoverContext.Provider>
-        </Popper>
-      )
 
       return (
-        <AdaptProvider>
-          {isWeb ? (
-            <FloatingOverrideContext.Provider value={floatingContext}>
-              {contents}
-            </FloatingOverrideContext.Provider>
-          ) : (
-            contents
-          )}
-        </AdaptProvider>
+        <AdaptParent scope={`${id}PopoverContents`} portal>
+          <PopoverInner ref={ref} id={id} {...props} />
+        </AdaptParent>
       )
     }
   ),
@@ -702,6 +597,115 @@ export const Popover = withStaticProperties(
     Sheet: Sheet.Controlled,
   }
 )
+
+const PopoverInner = React.forwardRef<
+  Popover,
+  ScopedPopoverProps<PopoverProps> & { id: string }
+>(function PopoverInner(props, forwardedRef) {
+  const {
+    children,
+    open: openProp,
+    defaultOpen,
+    onOpenChange,
+    __scopePopover,
+    keepChildrenMounted,
+    hoverable,
+    disableFocus,
+    id,
+    ...restProps
+  } = props
+
+  const triggerRef = React.useRef<TamaguiElement>(null)
+  const [hasCustomAnchor, setHasCustomAnchor] = React.useState(false)
+  const viaRef = React.useRef()
+  const [open, setOpen] = useControllableState({
+    prop: openProp,
+    defaultProp: defaultOpen || false,
+    onChange: (val) => {
+      onOpenChange?.(val, viaRef.current)
+    },
+  })
+
+  const handleOpenChange = useEvent((val, via) => {
+    viaRef.current = via
+    setOpen(val)
+  })
+
+  const isAdapted = useAdaptIsActive()
+
+  const floatingContext = useFloatingContext({
+    open,
+    setOpen: handleOpenChange,
+    disable: isAdapted,
+    hoverable,
+    disableFocus: disableFocus,
+  }) as any
+
+  const [anchorTo, setAnchorToRaw] = React.useState<Rect>()
+
+  const setAnchorTo = createShallowSetState(
+    setAnchorToRaw as any
+  ) as typeof setAnchorToRaw
+
+  React.useImperativeHandle(forwardedRef, () => ({
+    anchorTo: setAnchorTo,
+    toggle: () => setOpen((prev) => !prev),
+    open: () => setOpen(true),
+    close: () => setOpen(false),
+    setOpen,
+  }))
+
+  // needs to be entirely memoized!
+  const popoverContext = {
+    id,
+    contentId: React.useId(),
+    triggerRef,
+    open,
+    breakpointActive: isAdapted,
+    onOpenChange: handleOpenChange,
+    onOpenToggle: useEvent(() => {
+      if (open && isAdapted) {
+        return
+      }
+      setOpen(!open)
+    }),
+    hasCustomAnchor,
+    anchorTo,
+    onCustomAnchorAdd: React.useCallback(() => setHasCustomAnchor(true), []),
+    onCustomAnchorRemove: React.useCallback(() => setHasCustomAnchor(false), []),
+    keepChildrenMounted,
+  }
+
+  // // debug if changing too often
+  // if (process.env.NODE_ENV === 'development') {
+  //   Object.keys(popoverContext).forEach((key) => {
+  //     React.useEffect(
+  //       () => console.log(`changed`, key, popoverContext[key]),
+  //       [popoverContext[key]]
+  //     )
+  //   })
+  // }
+
+  const contents = (
+    <Popper __scopePopper={__scopePopover || POPOVER_SCOPE} stayInFrame {...restProps}>
+      <PopoverContext.Provider scope={__scopePopover} {...popoverContext}>
+        <PopoverSheetController onOpenChange={setOpen}>{children}</PopoverSheetController>
+      </PopoverContext.Provider>
+    </Popper>
+  )
+
+  return (
+    <>
+      {isWeb ? (
+        <FloatingOverrideContext.Provider value={floatingContext}>
+          {contents}
+        </FloatingOverrideContext.Provider>
+      ) : (
+        contents
+      )}
+    </>
+  )
+})
 
 /* -----------------------------------------------------------------------------------------------*/
 
@@ -736,15 +740,7 @@ const PopoverSheetController = ({
   )
 }
 
-const useSheetBreakpointActive = (breakpoint?: MediaQueryKey | null | boolean) => {
-  const media = useMedia()
-  if (typeof breakpoint === 'boolean' || !breakpoint) {
-    return !!breakpoint
-  }
-  return media[breakpoint]
-}
-
 const useShowPopoverSheet = (context: PopoverContextValue) => {
-  const breakpointActive = useSheetBreakpointActive(context.sheetBreakpoint)
-  return context.open === false ? false : breakpointActive
+  const isAdapted = useAdaptIsActive()
+  return context.open === false ? false : isAdapted
 }

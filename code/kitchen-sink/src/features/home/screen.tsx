@@ -1,30 +1,59 @@
-import { ChevronRight, Moon, Sun } from '@tamagui/lucide-icons'
+import { ChevronRight } from '@tamagui/lucide-icons'
 import { ScrollView } from 'react-native'
 import type { UseLinkProps } from 'solito/link'
 import { useLink } from 'solito/link'
-// import { UseLinkProps, useLink } from 'solito/link'
 import type { ListItemProps } from 'tamagui'
 import {
-  Button,
   H1,
   ListItem,
   Paragraph,
   Separator,
-  Spacer,
-  Switch,
+  Square,
+  Theme,
+  XStack,
   YGroup,
   YStack,
 } from 'tamagui'
-
-import { useThemeControl } from '../../useKitchenSinkTheme'
+import { ColorSchemeListItem } from './ColorSchemeListItem'
 
 export function HomeScreen() {
+  // To test a single case easily:
+  // return (
+  //   <>
+  //     <ColorSchemeToggle />
+  //     <ScrollView>
+  //       <ThemeChange />
+  //     </ScrollView>
+  //   </>
+  // )
+
   return (
     <ScrollView>
       <YStack bg="$color2" p="$3" pt="$6" pb="$8" f={1} space>
         <H1 fontFamily="$heading" size="$9">
           Kitchen Sink
         </H1>
+
+        <XStack gap="$2">
+          <Square
+            size={30}
+            bg="red"
+            $theme-dark={{ bg: 'yellow' }}
+            $theme-light={{ bg: 'green' }}
+          />
+
+          {/* nested themes */}
+          <Theme name="green">
+            <Square size={30} bg="$color10" />
+
+            <Theme name="pink">
+              <Square size={30} bg="$color10" />
+            </Theme>
+          </Theme>
+
+          <Square size={30} themeInverse bg="$background" />
+          <Square size={30} bg="$background" />
+        </XStack>
 
         <YGroup size="$4">
           <YGroup.Item>
@@ -43,13 +72,17 @@ export function HomeScreen() {
         </YStack>
 
         <YStack gap="$4" maw={600}>
-          {demos.map((group, i) => {
+          {demos.map(({ pages }, i) => {
             return (
-              <YGroup size="$4" key={i} separator={<Separator />}>
-                {group.pages.map((page) => {
+              <YGroup key={i} size="$4" separator={<Separator />}>
+                {pages.map((page) => {
+                  const route = page?.route
+
+                  if (!route) return null
+
                   return (
-                    <YGroup.Item key={page.route}>
-                      <LinkListItem bg="$color1" href={page.route} pressTheme size="$4">
+                    <YGroup.Item key={route}>
+                      <LinkListItem bg="$color1" href={route} pressTheme size="$4">
                         {page.title}
                       </LinkListItem>
                     </YGroup.Item>
@@ -77,44 +110,17 @@ export const LinkListItem = ({
     <ListItem
       {...linkProps}
       onPress={(e) => {
-        linkProps.onPress(e)
+        try {
+          linkProps?.onPress?.()
+        } catch (e) {
+          // biome-ignore lint/suspicious/noConsoleLog: <explanation>
+          console.log('error: ', e)
+        }
       }}
       {...props}
       iconAfter={<ChevronRight color="$color10" />}
     >
       {children}
-    </ListItem>
-  )
-}
-
-const ColorSchemeListItem = (props: ListItemProps) => {
-  const theme = useThemeControl()
-  const checked = theme.value === 'light'
-
-  return (
-    <ListItem {...props} bg="$color1" pressTheme paddingVertical={0}>
-      <ListItem.Text>Theme</ListItem.Text>
-      <Spacer flex />
-      <Button chromeless disabled w={20} icon={Moon} />
-      <Switch
-        native
-        checked={checked}
-        onCheckedChange={() => {
-          theme.set(theme.value === 'dark' ? 'light' : 'dark')
-        }}
-      >
-        <Switch.Thumb
-          animation={[
-            'quick',
-            {
-              transform: {
-                overshootClamping: true,
-              },
-            },
-          ]}
-        />
-      </Switch>
-      <Button chromeless disabled w={20} icon={Sun} />
     </ListItem>
   )
 }
@@ -126,6 +132,7 @@ const demos = [
   {
     pages: [
       { title: 'Sandbox', route: '/sandbox' },
+      { title: 'Benchmark', route: '/test/Benchmark' },
       {
         title: 'Test Cases',
         route: '/tests',
